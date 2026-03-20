@@ -9,8 +9,13 @@ import adminRoutes from "./routes/admin.routes.js";
 dotenv.config();
 
 const app = express();
-
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true }));
+app.use(cors({
+  origin: [
+    "https://gasytrip.versel.app",
+    "http://localhost:5173",
+  ],
+  credentials: true, 
+}));
 app.use(express.json());
 
 app.get("/api/health", async (req, res) => {
