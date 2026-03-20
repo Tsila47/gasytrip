@@ -9,13 +9,19 @@ import adminRoutes from "./routes/admin.routes.js";
 dotenv.config();
 
 const app = express();
-app.use(cors({
+
+const corsOptions = {
   origin: [
-    "https://gasytrip.versel.app",
+    "https://gasytrip.vercel.app",
     "http://localhost:5173",
   ],
-  credentials: true, 
-}));
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(express.json());
 
 app.get("/api/health", async (req, res) => {
