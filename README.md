@@ -368,6 +368,5 @@ UPDATE users SET role = 'ADMIN' WHERE email = 'ton@email.com';
 ---
 
 ## Auteur
-RANDRIAMAHAZAKA Tsilavina
-Projet **GasyTrip** — Covoiturage à Madagascar  
+RANDRIAMAHAZAKA Tsilavina 
 *Partagez la route, voyagez ensemble* 🌴
