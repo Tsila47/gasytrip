@@ -109,7 +109,7 @@ export default function RideListPage() {
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
-    for (const key of ["departure_city", "arrival_city", "departure_datetime", "price_max", "seats_min"]) {
+    for (const key of ["departure_city", "arrival_city", "departure_datetime", "price_max", "seats_min", "driver_id"]) {
       const value = searchParams.get(key);
       if (value) params.set(key, value);
     }

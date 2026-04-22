@@ -14,6 +14,7 @@ export async function listRides(req, res) {
       departure_datetime,
       price_max,
       seats_min,
+      driver_id,
     } = req.query;
 
     const conditions = ["r.status = 'OPEN'"];
@@ -42,6 +43,10 @@ export async function listRides(req, res) {
     if (seats_min) {
       conditions.push("r.seats_available >= ?");
       params.push(seats_min);
+    }
+    if (driver_id) {
+      conditions.push("r.driver_id = ?");
+      params.push(driver_id);
     }
 
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
