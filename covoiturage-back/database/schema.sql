@@ -89,3 +89,26 @@ CREATE TABLE IF NOT EXISTS bookings (
     ON UPDATE CASCADE,
   CONSTRAINT chk_bookings_seats_booked CHECK (seats_booked > 0)
 ) ENGINE=InnoDB;
+
+-- 6) Ratings (notes conducteurs)
+CREATE TABLE IF NOT EXISTS ratings (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  ride_id BIGINT UNSIGNED NOT NULL,
+  passenger_id BIGINT UNSIGNED NOT NULL,
+  rating TINYINT UNSIGNED NOT NULL,
+  comment VARCHAR(500) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_ratings_ride_passenger (ride_id, passenger_id),
+  KEY idx_ratings_ride (ride_id),
+  KEY idx_ratings_passenger (passenger_id),
+  CONSTRAINT fk_ratings_ride
+    FOREIGN KEY (ride_id) REFERENCES rides(id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT fk_ratings_passenger
+    FOREIGN KEY (passenger_id) REFERENCES users(id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT chk_ratings_rating CHECK (rating >= 1 AND rating <= 5)
+) ENGINE=InnoDB;
