@@ -119,7 +119,7 @@ export async function me(req, res) {
     }
 
     const [rows] = await pool.execute(
-      `SELECT id, name, email, phone, role, is_active
+      `SELECT id, name, email, phone, role, is_active, photo_url, created_at
        FROM users WHERE id = ? LIMIT 1`,
       [userId]
     );
@@ -141,5 +141,32 @@ export async function me(req, res) {
     });
   } catch (err) {
     return res.status(500).json({ message: "Erreur serveur lors de la récupération du profil." });
+  }
+}
+
+export async function updateMe(req, res) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Non authentifié." });
+
+    const { name, phone, photo_url } = req.body || {};
+
+    if (!name?.trim()) {
+      return res.status(400).json({ message: "Le nom est obligatoire." });
+    }
+
+    await pool.execute(
+      `UPDATE users SET name = ?, phone = ?, photo_url = ? WHERE id = ?`,
+      [name.trim(), phone ?? null, photo_url ?? null, userId]
+    );
+
+    const [rows] = await pool.execute(
+      `SELECT id, name, email, phone, role, is_active, photo_url, created_at FROM users WHERE id = ? LIMIT 1`,
+      [userId]
+    );
+
+    return res.json({ user: rows[0] });
+  } catch (err) {
+    return res.status(500).json({ message: "Erreur serveur lors de la mise à jour." });
   }
 }
