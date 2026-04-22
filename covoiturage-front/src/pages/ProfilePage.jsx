@@ -19,27 +19,27 @@ function Avatar({ name, photoUrl, size = "lg" }) {
   ];
 
   const colorIndex = name ? name.charCodeAt(0) % colors.length : 0;
-  const sizeClass = size === "lg" ? "w-24 h-24 text-3xl" : "w-10 h-10 text-sm";
+  const sizeClass = size === "lg" ? "w-20 h-20 text-2xl" : "w-10 h-10 text-sm";
 
   if (photoUrl) {
     return (
       <img
         src={photoUrl}
         alt={name}
-        className={`${sizeClass} rounded-full object-cover shadow-lg border-2 border-indigo-500/30`}
+        className={`${sizeClass} rounded-full object-cover shadow-lg border-2 border-indigo-500/30 shrink-0`}
       />
     );
   }
 
   return (
-    <div className={`${sizeClass} rounded-full bg-gradient-to-br ${colors[colorIndex]} flex items-center justify-center font-bold text-white shadow-lg`}>
+    <div className={`${sizeClass} rounded-full bg-gradient-to-br ${colors[colorIndex]} flex items-center justify-center font-bold text-white shadow-lg shrink-0`}>
       {initials}
     </div>
   );
 }
 
 export default function ProfilePage() {
-  const { user, login } = useAuth();
+  const { login } = useAuth();
   const fileInputRef = useRef(null);
 
   const [profile, setProfile] = useState(null);
@@ -88,7 +88,6 @@ export default function ProfilePage() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Vérifie le type et la taille
     if (!file.type.startsWith("image/")) {
       setError("Fichier invalide — image uniquement.");
       return;
@@ -102,7 +101,6 @@ export default function ProfilePage() {
     setError("");
 
     try {
-      // Upload direct vers Cloudinary
       const formData = new FormData();
       formData.append("file", file);
       formData.append("upload_preset", UPLOAD_PRESET);
@@ -113,14 +111,16 @@ export default function ProfilePage() {
         { method: "POST", body: formData }
       );
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.error?.message || "Échec upload");
 
       const url = data.secure_url;
       setPhotoUrl(url);
 
-      // Sauvegarde l'URL dans le profil
-      await api.patch("/auth/me", { name: profile.name, phone: profile.phone, photo_url: url });
+      await api.patch("/auth/me", {
+        name: profile.name,
+        phone: profile.phone,
+        photo_url: url,
+      });
       setSuccess("Photo mise à jour !");
     } catch (err) {
       setError(err.message || "Erreur lors de l'upload.");
@@ -155,36 +155,40 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="text-2xl font-bold text-white mb-8">Mon profil</h1>
+      <div className="max-w-3xl mx-auto px-4 py-8">
+
+        <h1 className="text-xl font-bold text-white mb-6">Mon profil</h1>
 
         {loading && (
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 animate-pulse h-48" />
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 animate-pulse h-40" />
         )}
 
         {!loading && profile && (
           <div className="space-y-4">
 
             {/* Carte profil */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
-              <div className="flex items-start gap-6">
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
 
-                {/* Avatar + bouton upload */}
-                <div className="relative shrink-0 group">
+              {/* Header mobile — avatar centré */}
+              <div className="flex flex-col items-center text-center mb-5">
+
+                {/* Avatar + upload */}
+                <div className="relative mb-3">
                   <Avatar name={profile.name} photoUrl={photoUrl} size="lg" />
+                  {/* Bouton upload — toujours visible sur mobile */}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    className="absolute -bottom-1 -right-1 w-8 h-8 bg-indigo-600 hover:bg-indigo-500 rounded-full flex items-center justify-center shadow-lg transition-colors border-2 border-gray-900"
                   >
                     {uploading ? (
-                      <svg className="w-6 h-6 text-white animate-spin" viewBox="0 0 24 24" fill="none">
+                      <svg className="w-4 h-4 text-white animate-spin" viewBox="0 0 24 24" fill="none">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                       </svg>
                     ) : (
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6 text-white">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4 text-white">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                         <circle cx="12" cy="13" r="4"/>
                       </svg>
@@ -199,56 +203,57 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 flex-wrap mb-1">
-                    <h2 className="text-white font-bold text-xl">{profile.name}</h2>
-                    {isDriver && (
-                      <span className="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-xs font-semibold px-2.5 py-1 rounded-full">
-                        🚗 Conducteur
-                      </span>
-                    )}
-                    {profile.role === "ADMIN" && (
-                      <span className="bg-purple-500/20 text-purple-400 border border-purple-500/30 text-xs font-semibold px-2.5 py-1 rounded-full">
-                        ⚡ Admin
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-gray-400 text-sm mb-1">{profile.email}</p>
-                  {profile.phone && (
-                    <p className="text-gray-400 text-sm mb-1">📞 {profile.phone}</p>
+                {/* Nom + badges */}
+                <h2 className="text-white font-bold text-lg">{profile.name}</h2>
+                <div className="flex flex-wrap justify-center gap-2 mt-1.5">
+                  {isDriver && (
+                    <span className="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      🚗 Conducteur
+                    </span>
                   )}
-                  {memberSince && (
-                    <p className="text-gray-600 text-xs mt-2">Membre depuis {memberSince}</p>
+                  {profile.role === "ADMIN" && (
+                    <span className="bg-purple-500/20 text-purple-400 border border-purple-500/30 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      ⚡ Admin
+                    </span>
                   )}
-                  <p className="text-gray-600 text-xs mt-1">
-                    Survole la photo pour la changer
-                  </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => { setEditing(!editing); setSuccess(""); }}
-                  className="shrink-0 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white text-xs font-medium px-4 py-2 rounded-xl transition-all"
-                >
-                  {editing ? "Annuler" : "Modifier"}
-                </button>
+                {/* Infos */}
+                <div className="mt-3 space-y-1">
+                  <p className="text-gray-400 text-sm">{profile.email}</p>
+                  {profile.phone && (
+                    <p className="text-gray-400 text-sm">📞 {profile.phone}</p>
+                  )}
+                  {memberSince && (
+                    <p className="text-gray-600 text-xs">Membre depuis {memberSince}</p>
+                  )}
+                </div>
               </div>
+
+              {/* Bouton modifier */}
+              <button
+                type="button"
+                onClick={() => { setEditing(!editing); setSuccess(""); }}
+                className="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white text-sm font-medium py-2.5 rounded-xl transition-all"
+              >
+                {editing ? "Annuler" : "✏️ Modifier mon profil"}
+              </button>
 
               {/* Messages */}
               {error && (
-                <div className="mt-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
+                <div className="mt-3 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
                   {error}
                 </div>
               )}
               {success && !editing && (
-                <div className="mt-4 bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3">
-                  {success}
+                <div className="mt-3 bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3">
+                  ✅ {success}
                 </div>
               )}
 
               {/* Formulaire modification */}
               {editing && (
-                <form onSubmit={handleSave} className="mt-6 pt-6 border-t border-gray-800 space-y-4">
+                <form onSubmit={handleSave} className="mt-4 pt-4 border-t border-gray-800 space-y-4">
                   <div>
                     <label className="text-gray-400 text-xs font-medium uppercase tracking-wider block mb-1.5">
                       Nom complet
@@ -275,24 +280,24 @@ export default function ProfilePage() {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold px-6 py-2.5 rounded-xl transition-colors text-sm"
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors text-sm"
                   >
-                    {saving ? "Enregistrement..." : "Enregistrer"}
+                    {saving ? "Enregistrement..." : "Enregistrer les modifications"}
                   </button>
                 </form>
               )}
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               {[
-                { label: "Trajets publiés",      value: stats.ridesCount,      color: "text-indigo-400", icon: "🚗" },
-                { label: "Passagers transportés", value: stats.passengersCount, color: "text-emerald-400", icon: "👥" },
-                { label: "Réservations actives",  value: stats.bookingsCount,   color: "text-amber-400",  icon: "🎫" },
+                { label: "Trajets",     value: stats.ridesCount,      color: "text-indigo-400", icon: "🚗" },
+                { label: "Passagers",   value: stats.passengersCount, color: "text-emerald-400", icon: "👥" },
+                { label: "Réservations", value: stats.bookingsCount,  color: "text-amber-400",  icon: "🎫" },
               ].map(s => (
-                <div key={s.label} className="bg-gray-900 border border-gray-800 rounded-2xl p-5 text-center">
-                  <p className="text-2xl mb-1">{s.icon}</p>
-                  <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
+                <div key={s.label} className="bg-gray-900 border border-gray-800 rounded-2xl p-4 text-center">
+                  <p className="text-xl mb-1">{s.icon}</p>
+                  <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
                   <p className="text-gray-500 text-xs uppercase tracking-wider mt-1 leading-tight">{s.label}</p>
                 </div>
               ))}
@@ -300,14 +305,14 @@ export default function ProfilePage() {
 
             {/* Badge conducteur */}
             {isDriver && (
-              <div className="bg-gray-900 border border-indigo-500/20 rounded-2xl p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-indigo-500/20 border border-indigo-500/30 rounded-xl flex items-center justify-center text-2xl shrink-0">
+              <div className="bg-gray-900 border border-indigo-500/20 rounded-2xl p-5">
+                <div className="flex items-start gap-4">
+                  <div className="w-11 h-11 bg-indigo-500/20 border border-indigo-500/30 rounded-xl flex items-center justify-center text-xl shrink-0">
                     🏅
                   </div>
                   <div>
-                    <h3 className="text-white font-semibold mb-0.5">Badge Conducteur GasyTrip</h3>
-                    <p className="text-gray-400 text-sm">
+                    <h3 className="text-white font-semibold text-sm mb-1">Badge Conducteur GasyTrip</h3>
+                    <p className="text-gray-400 text-xs leading-relaxed">
                       Tu as publié {stats.ridesCount} trajet{stats.ridesCount > 1 ? "s" : ""} et transporté {stats.passengersCount} passager{stats.passengersCount > 1 ? "s" : ""} sur la plateforme.
                     </p>
                   </div>
