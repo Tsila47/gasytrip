@@ -345,7 +345,8 @@ export async function listMyBookings(req, res) {
         r.price,
         d.name AS driver_name,
         rt.rating AS my_rating,
-        rt.comment AS my_rating_comment
+        rt.comment AS my_rating_comment,
+        rt.created_at AS my_rating_created_at
        FROM bookings b
        JOIN rides r ON r.id = b.ride_id
        JOIN users d ON d.id = r.driver_id
@@ -361,6 +362,24 @@ export async function listMyBookings(req, res) {
   }
 }
 
+async function getRatingContext(rideId, userId) {
+  const [rows] = await pool.execute(
+    `SELECT
+       b.id AS booking_id,
+       b.status AS booking_status,
+       r.driver_id,
+       r.departure_datetime,
+       rt.id AS rating_id
+     FROM bookings b
+     JOIN rides r ON r.id = b.ride_id
+     LEFT JOIN ratings rt ON rt.ride_id = b.ride_id AND rt.passenger_id = b.passenger_id
+     WHERE b.ride_id = ? AND b.passenger_id = ?
+     LIMIT 1`,
+    [rideId, userId]
+  );
+  return rows[0] || null;
+}
+
 export async function createRideRating(req, res) {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ message: "Non authentifié." });
@@ -374,24 +393,10 @@ export async function createRideRating(req, res) {
   }
 
   try {
-    const [rows] = await pool.execute(
-      `SELECT
-         b.id AS booking_id,
-         b.status AS booking_status,
-         r.driver_id,
-         r.departure_datetime
-       FROM bookings b
-       JOIN rides r ON r.id = b.ride_id
-       WHERE b.ride_id = ? AND b.passenger_id = ?
-       LIMIT 1`,
-      [rideId, userId]
-    );
-
-    if (rows.length === 0) {
+    const booking = await getRatingContext(rideId, userId);
+    if (!booking) {
       return res.status(403).json({ message: "Tu ne peux noter que les trajets que tu as réservés." });
     }
-
-    const booking = rows[0];
     if (Number(booking.driver_id) === Number(userId)) {
       return res.status(403).json({ message: "Tu ne peux pas te noter toi-même." });
     }
@@ -401,12 +406,7 @@ export async function createRideRating(req, res) {
     if (new Date(booking.departure_datetime).getTime() > Date.now()) {
       return res.status(409).json({ message: "Tu pourras noter ce trajet après son départ." });
     }
-
-    const [existing] = await pool.execute(
-      `SELECT id FROM ratings WHERE ride_id = ? AND passenger_id = ? LIMIT 1`,
-      [rideId, userId]
-    );
-    if (existing.length > 0) {
+    if (booking.rating_id) {
       return res.status(409).json({ message: "Tu as déjà noté ce trajet." });
     }
 
@@ -419,6 +419,56 @@ export async function createRideRating(req, res) {
     return res.status(201).json({ message: "Merci, ta note a bien été enregistrée." });
   } catch {
     return res.status(500).json({ message: "Erreur serveur lors de l'enregistrement de la note." });
+  }
+}
+
+export async function updateRideRating(req, res) {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ message: "Non authentifié." });
+
+  const { id: rideId } = req.params;
+  const { rating, comment } = req.body || {};
+  const ratingNum = Number(rating);
+
+  if (!Number.isInteger(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+    return res.status(400).json({ message: "La note doit être un entier entre 1 et 5." });
+  }
+
+  try {
+    const booking = await getRatingContext(rideId, userId);
+    if (!booking || !booking.rating_id) {
+      return res.status(404).json({ message: "Note introuvable pour ce trajet." });
+    }
+
+    await pool.execute(
+      `UPDATE ratings
+       SET rating = ?, comment = ?
+       WHERE id = ?`,
+      [ratingNum, comment?.trim() || null, booking.rating_id]
+    );
+
+    return res.json({ message: "Ta note a été mise à jour." });
+  } catch {
+    return res.status(500).json({ message: "Erreur serveur lors de la mise à jour de la note." });
+  }
+}
+
+export async function deleteRideRating(req, res) {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ message: "Non authentifié." });
+
+  const { id: rideId } = req.params;
+
+  try {
+    const booking = await getRatingContext(rideId, userId);
+    if (!booking || !booking.rating_id) {
+      return res.status(404).json({ message: "Note introuvable pour ce trajet." });
+    }
+
+    await pool.execute(`DELETE FROM ratings WHERE id = ?`, [booking.rating_id]);
+    return res.json({ message: "Ta note a été supprimée." });
+  } catch {
+    return res.status(500).json({ message: "Erreur serveur lors de la suppression de la note." });
   }
 }
 
