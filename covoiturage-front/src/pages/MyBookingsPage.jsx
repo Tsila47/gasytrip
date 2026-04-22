@@ -89,8 +89,8 @@ export default function MyBookingsPage() {
                       <p className="text-gray-300">{b.seats_booked}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500 text-xs uppercase tracking-wider mb-0.5">Prix</p>
-                      <p className="text-indigo-400 font-semibold">{Number(b.price).toLocaleString()} Ar</p>
+                      <p className="text-gray-500 text-xs uppercase tracking-wider mb-0.5">Prix total</p>
+                      <p className="text-indigo-400 font-semibold">{(Number(b.price)*Number(b.seats_booked)).toLocaleString()} Ar</p>
                     </div>
                     <div>
                       <p className="text-gray-500 text-xs uppercase tracking-wider mb-0.5">Conducteur</p>
