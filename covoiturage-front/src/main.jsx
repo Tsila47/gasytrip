@@ -14,6 +14,7 @@ import MyRidesPage from "./pages/MyRidesPage.jsx";
 import CreateRidePage from "./pages/CreateRidePage.jsx";
 import AdminDashboardPage from "./pages/AdminDashboardPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
+import DriverProfilePage from "./pages/DriverProfilePage.jsx";
 import "./index.css";
 import Footer from "./compenents/Footer.jsx";
 import NotFoundPage from "./pages/NotFoundPage.jsx"; 
@@ -31,6 +32,7 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/rides" element={<RideListPage />} />
           <Route path="/rides/:id" element={<RideDetailPage />} />
+          <Route path="/conducteurs/:id" element={<DriverProfilePage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/me/reservations" element={<MyBookingsPage />} />
             <Route path="/me/rides" element={<MyRidesPage />} />
@@ -41,7 +43,7 @@ function App() {
           </Route>
             <Route element={<ProtectedRoute />}>
             <Route path="/me/profile" element={<ProfilePage />} />
-          /</Route>
+          </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
         </main>
