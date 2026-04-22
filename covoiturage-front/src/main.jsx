@@ -16,6 +16,7 @@ import AdminDashboardPage from "./pages/AdminDashboardPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import "./index.css";
 import Footer from "./compenents/Footer.jsx";
+import NotFoundPage from "./pages/NotFoundPage.jsx"; 
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
             <Route element={<ProtectedRoute />}>
             <Route path="/me/profile" element={<ProfilePage />} />
           /</Route>
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
         </main>
         <Footer/>
