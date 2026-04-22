@@ -29,7 +29,7 @@ function SkeletonCard() {
   );
 }
 
-function RideCard({ r, index }) {
+function RideCard({ r, index, onCancel }) {
   const status = STATUS_CONFIG[r.status] || STATUS_CONFIG.COMPLETED;
   const occupancyPct = r.seats_total > 0
     ? Math.round(((r.seats_total - r.seats_available) / r.seats_total) * 100)
@@ -46,6 +46,7 @@ function RideCard({ r, index }) {
         animationDelay: `${index * 70}ms`,
       }}
     >
+      {/* Header */}
       <div className="flex items-center gap-2 mb-4">
         <span className="text-white font-bold text-base group-hover:text-indigo-100 transition-colors">
           {r.departure_city}
@@ -62,6 +63,7 @@ function RideCard({ r, index }) {
         </span>
       </div>
 
+      {/* Infos grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
         <div>
           <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Date</p>
@@ -88,6 +90,7 @@ function RideCard({ r, index }) {
         </div>
       </div>
 
+      {/* Barre occupation + bouton annuler */}
       <div className="flex items-center gap-3">
         <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
           <div
@@ -99,6 +102,17 @@ function RideCard({ r, index }) {
           />
         </div>
         <span className="text-gray-500 text-xs shrink-0">{occupancyPct}% occupé</span>
+
+        {/* Bouton annuler — visible seulement si OPEN */}
+        {r.status === "OPEN" && (
+          <button
+            type="button"
+            onClick={() => onCancel(r.id)}
+            className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-400/60 transition-all"
+          >
+            Annuler le trajet
+          </button>
+        )}
       </div>
     </div>
   );
@@ -108,14 +122,31 @@ export default function MyRidesPage() {
   const [rides, setRides] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cancelling, setCancelling] = useState(null);
 
-  useEffect(() => {
+  async function loadRides() {
     setLoading(true);
     api.get("/rides/me/rides")
       .then(({ data }) => setRides(data.rides || []))
       .catch((err) => setError(err.response?.data?.message || "Impossible de charger tes trajets."))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { loadRides(); }, []);
+
+  async function handleCancel(rideId) {
+    if (!window.confirm("Annuler ce trajet ? Toutes les réservations associées seront aussi annulées.")) return;
+    setCancelling(rideId);
+    setError("");
+    try {
+      await api.patch(`/rides/${rideId}/cancel`);
+      await loadRides();
+    } catch (err) {
+      setError(err.response?.data?.message || "Impossible d'annuler ce trajet.");
+    } finally {
+      setCancelling(null);
+    }
+  }
 
   const openCount      = rides.filter(r => r.status === "OPEN").length;
   const cancelledCount = rides.filter(r => r.status === "CANCELLED").length;
@@ -178,7 +209,7 @@ export default function MyRidesPage() {
           </div>
         )}
 
-        {/* Vide — un seul message, pas de bouton dupliqué */}
+        {/* Vide */}
         {!loading && rides.length === 0 && !error && (
           <div className="text-center py-24">
             <div className="w-16 h-16 bg-gray-900 border border-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -200,7 +231,21 @@ export default function MyRidesPage() {
         {/* Liste */}
         {!loading && (
           <div className="space-y-4">
-            {rides.map((r, i) => <RideCard key={r.id} r={r} index={i} />)}
+            {rides.map((r, i) => (
+              <RideCard
+                key={r.id}
+                r={r}
+                index={i}
+                onCancel={handleCancel}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Toast annulation en cours */}
+        {cancelling && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-700 text-white text-sm px-5 py-3 rounded-xl shadow-xl">
+            Annulation en cours...
           </div>
         )}
 
