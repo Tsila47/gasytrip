@@ -21,7 +21,24 @@ export async function getPublicUserProfile(req, res) {
          COUNT(*) AS rides_count,
          COALESCE(SUM(GREATEST(r.seats_total - r.seats_available, 0)), 0) AS passengers_count
        FROM rides r
-       WHERE r.driver_id = ?`,
+       WHERE r.driver_id = ? AND r.status <> 'CANCELLED'`,
+      [id]
+    );
+
+    const [recentRidesRows] = await pool.execute(
+      `SELECT
+         r.id,
+         r.departure_city,
+         r.arrival_city,
+         r.departure_datetime,
+         r.price,
+         r.seats_total,
+         r.seats_available,
+         r.status
+       FROM rides r
+       WHERE r.driver_id = ? AND r.status <> 'CANCELLED'
+       ORDER BY r.departure_datetime DESC
+       LIMIT 5`,
       [id]
     );
 
@@ -32,9 +49,10 @@ export async function getPublicUserProfile(req, res) {
     );
 
     let averageRating = null;
+    let ratingsCount = 0;
     if (Number(ratingTableRows[0]?.table_count) > 0) {
       const [ratingRows] = await pool.execute(
-        `SELECT AVG(rt.rating) AS average_rating
+        `SELECT AVG(rt.rating) AS average_rating, COUNT(*) AS ratings_count
          FROM ratings rt
          JOIN rides r ON r.id = rt.ride_id
          WHERE r.driver_id = ?`,
@@ -44,6 +62,7 @@ export async function getPublicUserProfile(req, res) {
         ratingRows[0]?.average_rating !== null && ratingRows[0]?.average_rating !== undefined
           ? Number(ratingRows[0].average_rating)
           : null;
+      ratingsCount = Number(ratingRows[0]?.ratings_count) || 0;
     }
 
     return res.json({
@@ -58,7 +77,9 @@ export async function getPublicUserProfile(req, res) {
         rides_count: Number(rideStatsRows[0].rides_count) || 0,
         passengers_count: Number(rideStatsRows[0].passengers_count) || 0,
         average_rating: averageRating,
+        ratings_count: ratingsCount,
       },
+      recent_rides: recentRidesRows,
     });
   } catch (err) {
     return res.status(500).json({ message: "Erreur serveur lors de la récupération du profil public." });

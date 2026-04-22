@@ -113,7 +113,57 @@ export default function DriverProfilePage() {
                 <p className="text-amber-400 text-3xl font-bold">
                   {profile.stats.average_rating !== null ? `${profile.stats.average_rating.toFixed(1)} ⭐` : "N/A"}
                 </p>
+                {profile.stats.ratings_count > 0 && (
+                  <p className="text-gray-500 text-xs mt-1">
+                    {profile.stats.ratings_count} avis
+                  </p>
+                )}
               </div>
+            </div>
+
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h2 className="text-white font-semibold">Derniers trajets publiés</h2>
+                <Link
+                  to={`/rides?driver_id=${profile.user.id}`}
+                  className="text-indigo-400 hover:text-indigo-300 text-sm font-medium"
+                >
+                  Voir ses trajets
+                </Link>
+              </div>
+
+              {profile.recent_rides?.length > 0 ? (
+                <div className="space-y-3">
+                  {profile.recent_rides.map((ride) => (
+                    <Link
+                      key={ride.id}
+                      to={`/rides/${ride.id}`}
+                      className="block border border-gray-800 hover:border-indigo-500/40 rounded-xl px-4 py-3 transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-white font-medium">
+                            {ride.departure_city} <span className="text-indigo-400">→</span> {ride.arrival_city}
+                          </p>
+                          <p className="text-gray-500 text-xs mt-0.5">
+                            {new Date(ride.departure_datetime).toLocaleString("fr-MG")}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-indigo-400 font-semibold text-sm">
+                            {Number(ride.price).toLocaleString()} Ar
+                          </p>
+                          <p className="text-gray-500 text-xs">
+                            {ride.seats_available}/{ride.seats_total} places
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">Aucun trajet publié pour le moment.</p>
+              )}
             </div>
           </div>
         )}
