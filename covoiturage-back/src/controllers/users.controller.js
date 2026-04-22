@@ -50,6 +50,7 @@ export async function getPublicUserProfile(req, res) {
 
     let averageRating = null;
     let ratingsCount = 0;
+    let recentReviews = [];
     if (Number(ratingTableRows[0]?.table_count) > 0) {
       const [ratingRows] = await pool.execute(
         `SELECT AVG(rt.rating) AS average_rating, COUNT(*) AS ratings_count
@@ -63,6 +64,23 @@ export async function getPublicUserProfile(req, res) {
           ? Number(ratingRows[0].average_rating)
           : null;
       ratingsCount = Number(ratingRows[0]?.ratings_count) || 0;
+
+      const [recentReviewsRows] = await pool.execute(
+        `SELECT
+           rt.id,
+           rt.rating,
+           rt.comment,
+           rt.created_at,
+           p.name AS passenger_name
+         FROM ratings rt
+         JOIN rides r ON r.id = rt.ride_id
+         JOIN users p ON p.id = rt.passenger_id
+         WHERE r.driver_id = ?
+         ORDER BY rt.created_at DESC
+         LIMIT 5`,
+        [id]
+      );
+      recentReviews = recentReviewsRows;
     }
 
     return res.json({
@@ -80,6 +98,7 @@ export async function getPublicUserProfile(req, res) {
         ratings_count: ratingsCount,
       },
       recent_rides: recentRidesRows,
+      recent_reviews: recentReviews,
     });
   } catch (err) {
     return res.status(500).json({ message: "Erreur serveur lors de la récupération du profil public." });

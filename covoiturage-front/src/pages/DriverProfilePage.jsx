@@ -210,6 +210,39 @@ export default function DriverProfilePage() {
                 <p className="text-gray-500 text-sm">Aucun trajet publié pour le moment.</p>
               )}
             </div>
+
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h2 className="text-white font-semibold">Avis récents</h2>
+                <span className="text-xs text-gray-500">
+                  {profile.stats.ratings_count || 0} avis au total
+                </span>
+              </div>
+
+              {profile.recent_reviews?.length > 0 ? (
+                <div className="space-y-3">
+                  {profile.recent_reviews.map((review) => (
+                    <div
+                      key={review.id}
+                      className="border border-gray-800 rounded-xl px-4 py-3"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm text-gray-300">{review.passenger_name}</p>
+                        <p className="text-amber-400 font-semibold text-sm">{review.rating} ⭐</p>
+                      </div>
+                      {review.comment && (
+                        <p className="text-gray-400 text-sm mt-2">{review.comment}</p>
+                      )}
+                      <p className="text-gray-600 text-xs mt-2">
+                        {new Date(review.created_at).toLocaleDateString("fr-MG")}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">Pas encore d'avis publiés.</p>
+              )}
+            </div>
           </div>
         )}
       </div>
