@@ -72,7 +72,17 @@ export default function RideDetailPage() {
                   { label: "Date de départ", value: new Date(ride.departure_datetime).toLocaleString("fr-MG") },
                   { label: "Prix", value: `${Number(ride.price).toLocaleString()} Ariary` },
                   { label: "Places disponibles", value: `${ride.seats_available} / ${ride.seats_total}` },
-                  { label: "Conducteur", value: ride.driver_name },
+                  {
+                    label: "Conducteur",
+                    value: (
+                      <Link
+                        to={`/conducteurs/${ride.driver_id}`}
+                        className="text-indigo-400 hover:text-indigo-300 hover:underline transition-colors"
+                      >
+                        {ride.driver_name}
+                      </Link>
+                    ),
+                  },
                   { label: "Véhicule", value: `${ride.vehicle_brand} ${ride.vehicle_model}` },
                   { label: "Immatriculation", value: ride.vehicle_plate },
                 ].map(({ label, value }) => (

@@ -5,6 +5,7 @@ import { pool } from "./config/db.js";
 import authRoutes from "./routes/auth.routes.js";
 import ridesRoutes from "./routes/rides.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import usersRoutes from "./routes/users.routes.js";
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ app.get("/api/health", async (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/rides", ridesRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/users", usersRoutes);
 
 const port = process.env.PORT || 4000;
 app.listen(port, () => {
