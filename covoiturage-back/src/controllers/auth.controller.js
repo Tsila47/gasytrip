@@ -47,15 +47,9 @@ export async function register(req, res) {
 
     return res.status(201).json({
       token,
-      user: {
-        id: userId,
-        name: name.trim(),
-        email: normalizedEmail,
-        phone: phone ?? null,
-        role,
-      },
+      user: { id: userId, name: name.trim(), email: normalizedEmail, phone: phone ?? null, role },
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({ message: "Erreur serveur lors de l'inscription." });
   }
 }
@@ -98,15 +92,9 @@ export async function login(req, res) {
 
     return res.json({
       token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone ?? null,
-        role: user.role,
-      },
+      user: { id: user.id, name: user.name, email: user.email, phone: user.phone ?? null, role: user.role },
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({ message: "Erreur serveur lors de la connexion." });
   }
 }
@@ -114,9 +102,7 @@ export async function login(req, res) {
 export async function me(req, res) {
   try {
     const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ message: "Utilisateur non authentifié." });
-    }
+    if (!userId) return res.status(401).json({ message: "Utilisateur non authentifié." });
 
     const [rows] = await pool.execute(
       `SELECT id, name, email, phone, role, is_active, photo_url, created_at
@@ -128,18 +114,8 @@ export async function me(req, res) {
       return res.status(404).json({ message: "Utilisateur introuvable." });
     }
 
-    const user = rows[0];
-    return res.json({
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone ?? null,
-        role: user.role,
-        is_active: user.is_active,
-      },
-    });
-  } catch (err) {
+    return res.json({ user: rows[0] });
+  } catch {
     return res.status(500).json({ message: "Erreur serveur lors de la récupération du profil." });
   }
 }
@@ -161,12 +137,13 @@ export async function updateMe(req, res) {
     );
 
     const [rows] = await pool.execute(
-      `SELECT id, name, email, phone, role, is_active, photo_url, created_at FROM users WHERE id = ? LIMIT 1`,
+      `SELECT id, name, email, phone, role, is_active, photo_url, created_at
+       FROM users WHERE id = ? LIMIT 1`,
       [userId]
     );
 
     return res.json({ user: rows[0] });
-  } catch (err) {
+  } catch {
     return res.status(500).json({ message: "Erreur serveur lors de la mise à jour." });
   }
 }
