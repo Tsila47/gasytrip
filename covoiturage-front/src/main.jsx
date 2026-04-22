@@ -13,6 +13,7 @@ import MyBookingsPage from "./pages/MyBookingsPage.jsx";
 import MyRidesPage from "./pages/MyRidesPage.jsx";
 import CreateRidePage from "./pages/CreateRidePage.jsx";
 import AdminDashboardPage from "./pages/AdminDashboardPage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
 import "./index.css";
 import Footer from "./compenents/Footer.jsx";
 
@@ -37,6 +38,9 @@ function App() {
           <Route element={<ProtectedRoute requireAdmin={true} />}>
             <Route path="/admin" element={<AdminDashboardPage />} />
           </Route>
+            <Route element={<ProtectedRoute />}>
+            <Route path="/me/profile" element={<ProfilePage />} />
+          /</Route>
         </Routes>
         </main>
         <Footer/>
