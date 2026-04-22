@@ -338,14 +338,18 @@ export async function listMyBookings(req, res) {
         b.seats_booked,
         b.created_at,
         r.id AS ride_id,
+        r.driver_id,
         r.departure_city,
         r.arrival_city,
         r.departure_datetime,
         r.price,
-        d.name AS driver_name
+        d.name AS driver_name,
+        rt.rating AS my_rating,
+        rt.comment AS my_rating_comment
        FROM bookings b
        JOIN rides r ON r.id = b.ride_id
        JOIN users d ON d.id = r.driver_id
+       LEFT JOIN ratings rt ON rt.ride_id = b.ride_id AND rt.passenger_id = b.passenger_id
        WHERE b.passenger_id = ?
        ORDER BY b.created_at DESC`,
       [userId]
@@ -354,6 +358,67 @@ export async function listMyBookings(req, res) {
     return res.json({ bookings: rows });
   } catch {
     return res.status(500).json({ message: "Erreur serveur lors de la récupération des réservations." });
+  }
+}
+
+export async function createRideRating(req, res) {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ message: "Non authentifié." });
+
+  const { id: rideId } = req.params;
+  const { rating, comment } = req.body || {};
+  const ratingNum = Number(rating);
+
+  if (!Number.isInteger(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+    return res.status(400).json({ message: "La note doit être un entier entre 1 et 5." });
+  }
+
+  try {
+    const [rows] = await pool.execute(
+      `SELECT
+         b.id AS booking_id,
+         b.status AS booking_status,
+         r.driver_id,
+         r.departure_datetime
+       FROM bookings b
+       JOIN rides r ON r.id = b.ride_id
+       WHERE b.ride_id = ? AND b.passenger_id = ?
+       LIMIT 1`,
+      [rideId, userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(403).json({ message: "Tu ne peux noter que les trajets que tu as réservés." });
+    }
+
+    const booking = rows[0];
+    if (Number(booking.driver_id) === Number(userId)) {
+      return res.status(403).json({ message: "Tu ne peux pas te noter toi-même." });
+    }
+    if (booking.booking_status !== "CONFIRMED") {
+      return res.status(409).json({ message: "Cette réservation n'est pas confirmée." });
+    }
+    if (new Date(booking.departure_datetime).getTime() > Date.now()) {
+      return res.status(409).json({ message: "Tu pourras noter ce trajet après son départ." });
+    }
+
+    const [existing] = await pool.execute(
+      `SELECT id FROM ratings WHERE ride_id = ? AND passenger_id = ? LIMIT 1`,
+      [rideId, userId]
+    );
+    if (existing.length > 0) {
+      return res.status(409).json({ message: "Tu as déjà noté ce trajet." });
+    }
+
+    await pool.execute(
+      `INSERT INTO ratings (ride_id, passenger_id, rating, comment, created_at)
+       VALUES (?, ?, ?, ?, NOW())`,
+      [rideId, userId, ratingNum, comment?.trim() || null]
+    );
+
+    return res.status(201).json({ message: "Merci, ta note a bien été enregistrée." });
+  } catch {
+    return res.status(500).json({ message: "Erreur serveur lors de l'enregistrement de la note." });
   }
 }
 

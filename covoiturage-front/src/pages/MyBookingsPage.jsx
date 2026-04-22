@@ -6,6 +6,8 @@ export default function MyBookingsPage() {
   const [bookings, setBookings] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [ratingForms, setRatingForms] = useState({});
+  const [submittingRatingId, setSubmittingRatingId] = useState(null);
 
   async function loadBookings() {
     setLoading(true);
@@ -29,6 +31,45 @@ export default function MyBookingsPage() {
       await loadBookings();
     } catch (err) {
       setError(err.response?.data?.message || "Impossible d'annuler.");
+    }
+  }
+
+  function updateRatingForm(bookingId, patch) {
+    setRatingForms((prev) => ({
+      ...prev,
+      [bookingId]: {
+        rating: prev[bookingId]?.rating ?? 5,
+        comment: prev[bookingId]?.comment ?? "",
+        ...patch,
+      },
+    }));
+  }
+
+  async function handleSubmitRating(booking) {
+    const current = ratingForms[booking.id] || { rating: 5, comment: "" };
+    const ratingValue = Number(current.rating);
+    if (!Number.isInteger(ratingValue) || ratingValue < 1 || ratingValue > 5) {
+      setError("Choisis une note entre 1 et 5.");
+      return;
+    }
+
+    setSubmittingRatingId(booking.id);
+    setError("");
+    try {
+      await api.post(`/rides/${booking.ride_id}/rating`, {
+        rating: ratingValue,
+        comment: current.comment?.trim() || null,
+      });
+      await loadBookings();
+      setRatingForms((prev) => {
+        const next = { ...prev };
+        delete next[booking.id];
+        return next;
+      });
+    } catch (err) {
+      setError(err.response?.data?.message || "Impossible d'enregistrer la note.");
+    } finally {
+      setSubmittingRatingId(null);
     }
   }
 
@@ -108,6 +149,63 @@ export default function MyBookingsPage() {
                   </button>
                 )}
               </div>
+
+              {(() => {
+                const isPastRide = new Date(b.departure_datetime).getTime() <= Date.now();
+                const canRate = b.status === "CONFIRMED" && isPastRide && b.my_rating === null;
+                if (!canRate && b.my_rating === null) return null;
+
+                return (
+                  <div className="mt-4 pt-4 border-t border-gray-800">
+                    {b.my_rating !== null ? (
+                      <div className="text-sm">
+                        <p className="text-gray-400">
+                          Ta note: <span className="text-amber-400 font-semibold">{b.my_rating} ⭐</span>
+                        </p>
+                        {b.my_rating_comment && (
+                          <p className="text-gray-500 text-xs mt-1">{b.my_rating_comment}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <p className="text-sm text-gray-300">
+                          Note le conducteur <span className="text-indigo-400 font-semibold">{b.driver_name}</span>
+                        </p>
+                        <div className="flex gap-2">
+                          {[1, 2, 3, 4, 5].map((value) => (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => updateRatingForm(b.id, { rating: value })}
+                              className={`text-lg ${
+                                (ratingForms[b.id]?.rating ?? 5) >= value ? "text-amber-400" : "text-gray-600"
+                              }`}
+                              aria-label={`Donner ${value} étoile${value > 1 ? "s" : ""}`}
+                            >
+                              ★
+                            </button>
+                          ))}
+                        </div>
+                        <textarea
+                          rows={2}
+                          value={ratingForms[b.id]?.comment ?? ""}
+                          onChange={(e) => updateRatingForm(b.id, { comment: e.target.value })}
+                          placeholder="Commentaire optionnel..."
+                          className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSubmitRating(b)}
+                          disabled={submittingRatingId === b.id}
+                          className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 rounded-lg"
+                        >
+                          {submittingRatingId === b.id ? "Envoi..." : "Envoyer ma note"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </div>

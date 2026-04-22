@@ -8,6 +8,7 @@ import {
   listMyRides,
   listMyBookings,
   cancelBooking,
+  createRideRating,
 } from "../controllers/rides.controller.js";
 
 const router = Router();
@@ -16,6 +17,7 @@ const router = Router();
 router.get("/me/rides", authMiddleware, listMyRides);
 router.get("/me/bookings", authMiddleware, listMyBookings);
 router.delete("/bookings/:id", authMiddleware, cancelBooking);
+router.post("/:id/rating", authMiddleware, createRideRating);
 
 // Public routes
 router.get("/", listRides);
