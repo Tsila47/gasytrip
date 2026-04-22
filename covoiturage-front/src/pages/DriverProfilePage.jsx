@@ -29,6 +29,39 @@ function Avatar({ name, photoUrl }) {
   );
 }
 
+function getDriverBadges(stats) {
+  const ridesCount = Number(stats?.rides_count) || 0;
+  const ratingsCount = Number(stats?.ratings_count) || 0;
+  const averageRating = stats?.average_rating !== null ? Number(stats?.average_rating) : null;
+  const badges = [];
+
+  if (ridesCount < 3) {
+    badges.push({
+      key: "new",
+      label: "Nouveau conducteur",
+      className: "bg-blue-500/20 text-blue-300 border border-blue-500/30",
+    });
+  }
+
+  if (ridesCount >= 3) {
+    badges.push({
+      key: "regular",
+      label: "Conducteur régulier",
+      className: "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30",
+    });
+  }
+
+  if (ridesCount >= 10 && ratingsCount >= 5 && averageRating !== null && averageRating >= 4.5) {
+    badges.push({
+      key: "top",
+      label: "Top conducteur",
+      className: "bg-amber-500/20 text-amber-300 border border-amber-500/30",
+    });
+  }
+
+  return badges;
+}
+
 export default function DriverProfilePage() {
   const { id } = useParams();
   const [profile, setProfile] = useState(null);
@@ -57,6 +90,8 @@ export default function DriverProfilePage() {
     };
   }, [id]);
 
+  const badges = profile ? getDriverBadges(profile.stats) : [];
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <div className="max-w-3xl mx-auto px-4 py-10">
@@ -81,11 +116,21 @@ export default function DriverProfilePage() {
                 <Avatar name={profile.user.name} photoUrl={profile.user.photo_url} />
                 <div>
                   <h1 className="text-xl font-bold">{profile.user.name}</h1>
-                  {profile.user.is_driver && (
-                    <span className="inline-block mt-1 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-xs font-semibold px-2.5 py-1 rounded-full">
-                      Conducteur
-                    </span>
-                  )}
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {profile.user.is_driver && (
+                      <span className="inline-block bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-xs font-semibold px-2.5 py-1 rounded-full">
+                        Conducteur
+                      </span>
+                    )}
+                    {badges.map((badge) => (
+                      <span
+                        key={badge.key}
+                        className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full ${badge.className}`}
+                      >
+                        {badge.label}
+                      </span>
+                    ))}
+                  </div>
                   {profile.user.member_since && (
                     <p className="text-gray-500 text-sm mt-2">
                       Membre depuis{" "}
