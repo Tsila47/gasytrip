@@ -50,6 +50,9 @@ export default function Navbar() {
                   Admin
                 </Link>
               )}
+              <Link  to="/me/profile" className={linkClass("/me/profile")}>
+                Mon profil
+              </Link>
               <button
                 onClick={handleLogout}
                 className="bg-gray-800 hover:bg-gray-700 text-white text-sm px-4 py-1.5 rounded-lg border border-gray-700 transition-colors"
@@ -110,6 +113,10 @@ export default function Navbar() {
                   Dashboard Admin
                 </Link>
               )}
+              <Link to="/me/profile" onClick={closeMenu}
+                className="text-gray-300 hover:text-white hover:bg-gray-800 px-3 py-2.5 rounded-xl text-sm transition-colors">
+                  Mon profil
+                </Link>
               <div className="border-t border-gray-800 mt-2 pt-2">
                 <button
                   onClick={handleLogout}
