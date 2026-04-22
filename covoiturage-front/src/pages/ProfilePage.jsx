@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import api from "../services/api.js";
 
-function Avatar({ name, size = "lg" }) {
+const CLOUD_NAME = "dvxvs6upk";
+const UPLOAD_PRESET = "gasytrip_avatars";
+
+function Avatar({ name, photoUrl, size = "lg" }) {
   const initials = name
     ? name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()
     : "?";
@@ -15,13 +18,18 @@ function Avatar({ name, size = "lg" }) {
     "from-pink-500 to-rose-600",
   ];
 
-  const colorIndex = name
-    ? name.charCodeAt(0) % colors.length
-    : 0;
+  const colorIndex = name ? name.charCodeAt(0) % colors.length : 0;
+  const sizeClass = size === "lg" ? "w-24 h-24 text-3xl" : "w-10 h-10 text-sm";
 
-  const sizeClass = size === "lg"
-    ? "w-24 h-24 text-3xl"
-    : "w-12 h-12 text-lg";
+  if (photoUrl) {
+    return (
+      <img
+        src={photoUrl}
+        alt={name}
+        className={`${sizeClass} rounded-full object-cover shadow-lg border-2 border-indigo-500/30`}
+      />
+    );
+  }
 
   return (
     <div className={`${sizeClass} rounded-full bg-gradient-to-br ${colors[colorIndex]} flex items-center justify-center font-bold text-white shadow-lg`}>
@@ -32,6 +40,8 @@ function Avatar({ name, size = "lg" }) {
 
 export default function ProfilePage() {
   const { user, login } = useAuth();
+  const fileInputRef = useRef(null);
+
   const [profile, setProfile] = useState(null);
   const [stats, setStats] = useState({ ridesCount: 0, passengersCount: 0, bookingsCount: 0 });
   const [editing, setEditing] = useState(false);
@@ -40,6 +50,8 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState(null);
 
   async function loadProfile() {
     setLoading(true);
@@ -52,21 +64,18 @@ export default function ProfilePage() {
 
       setProfile(meData.user);
       setForm({ name: meData.user.name, phone: meData.user.phone || "" });
+      if (meData.user.photo_url) setPhotoUrl(meData.user.photo_url);
 
       const rides = ridesData.rides || [];
       const bookings = bookingsData.bookings || [];
-
-      // Nombre total de passagers transportés (réservations confirmées sur ses trajets)
-      const passengersCount = rides.reduce((acc, r) => {
-        return acc + (r.seats_total - r.seats_available);
-      }, 0);
+      const passengersCount = rides.reduce((acc, r) => acc + (r.seats_total - r.seats_available), 0);
 
       setStats({
         ridesCount: rides.filter(r => r.status !== "CANCELLED").length,
         passengersCount,
         bookingsCount: bookings.filter(b => b.status === "CONFIRMED").length,
       });
-    } catch (err) {
+    } catch {
       setError("Impossible de charger le profil.");
     } finally {
       setLoading(false);
@@ -75,18 +84,62 @@ export default function ProfilePage() {
 
   useEffect(() => { loadProfile(); }, []);
 
+  async function handlePhotoUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Vérifie le type et la taille
+    if (!file.type.startsWith("image/")) {
+      setError("Fichier invalide — image uniquement.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image trop lourde — 5MB maximum.");
+      return;
+    }
+
+    setUploading(true);
+    setError("");
+
+    try {
+      // Upload direct vers Cloudinary
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", UPLOAD_PRESET);
+      formData.append("folder", "gasytrip/avatars");
+
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+        { method: "POST", body: formData }
+      );
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error?.message || "Échec upload");
+
+      const url = data.secure_url;
+      setPhotoUrl(url);
+
+      // Sauvegarde l'URL dans le profil
+      await api.patch("/auth/me", { name: profile.name, phone: profile.phone, photo_url: url });
+      setSuccess("Photo mise à jour !");
+    } catch (err) {
+      setError(err.message || "Erreur lors de l'upload.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function handleSave(e) {
     e.preventDefault();
     setSaving(true);
     setError("");
     setSuccess("");
     try {
-      const { data } = await api.patch("/auth/me", form);
+      const { data } = await api.patch("/auth/me", { ...form, photo_url: photoUrl });
       setProfile(data.user);
-      // Met à jour le token pour que la Navbar reflète le nouveau nom
       const token = localStorage.getItem("token");
       if (token) login(token);
-      setSuccess("Profil mis à jour avec succès !");
+      setSuccess("Profil mis à jour !");
       setEditing(false);
     } catch (err) {
       setError(err.response?.data?.message || "Erreur lors de la mise à jour.");
@@ -103,13 +156,10 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <div className="max-w-3xl mx-auto px-4 py-10">
-
         <h1 className="text-2xl font-bold text-white mb-8">Mon profil</h1>
 
         {loading && (
-          <div className="space-y-4">
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 animate-pulse h-48" />
-          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 animate-pulse h-48" />
         )}
 
         {!loading && profile && (
@@ -118,7 +168,37 @@ export default function ProfilePage() {
             {/* Carte profil */}
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
               <div className="flex items-start gap-6">
-                <Avatar name={profile.name} size="lg" />
+
+                {/* Avatar + bouton upload */}
+                <div className="relative shrink-0 group">
+                  <Avatar name={profile.name} photoUrl={photoUrl} size="lg" />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  >
+                    {uploading ? (
+                      <svg className="w-6 h-6 text-white animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6 text-white">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                        <circle cx="12" cy="13" r="4"/>
+                      </svg>
+                    )}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                </div>
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 flex-wrap mb-1">
                     <h2 className="text-white font-bold text-xl">{profile.name}</h2>
@@ -140,24 +220,35 @@ export default function ProfilePage() {
                   {memberSince && (
                     <p className="text-gray-600 text-xs mt-2">Membre depuis {memberSince}</p>
                   )}
+                  <p className="text-gray-600 text-xs mt-1">
+                    Survole la photo pour la changer
+                  </p>
                 </div>
+
                 <button
                   type="button"
-                  onClick={() => setEditing(!editing)}
+                  onClick={() => { setEditing(!editing); setSuccess(""); }}
                   className="shrink-0 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white text-xs font-medium px-4 py-2 rounded-xl transition-all"
                 >
                   {editing ? "Annuler" : "Modifier"}
                 </button>
               </div>
 
+              {/* Messages */}
+              {error && (
+                <div className="mt-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
+                  {error}
+                </div>
+              )}
+              {success && !editing && (
+                <div className="mt-4 bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3">
+                  {success}
+                </div>
+              )}
+
               {/* Formulaire modification */}
               {editing && (
                 <form onSubmit={handleSave} className="mt-6 pt-6 border-t border-gray-800 space-y-4">
-                  {error && (
-                    <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
-                      {error}
-                    </div>
-                  )}
                   <div>
                     <label className="text-gray-400 text-xs font-medium uppercase tracking-wider block mb-1.5">
                       Nom complet
@@ -190,25 +281,19 @@ export default function ProfilePage() {
                   </button>
                 </form>
               )}
-
-              {success && !editing && (
-                <div className="mt-4 bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3">
-                  {success}
-                </div>
-              )}
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
               {[
-                { label: "Trajets publiés",     value: stats.ridesCount,      color: "text-indigo-400", icon: "🚗" },
+                { label: "Trajets publiés",      value: stats.ridesCount,      color: "text-indigo-400", icon: "🚗" },
                 { label: "Passagers transportés", value: stats.passengersCount, color: "text-emerald-400", icon: "👥" },
-                { label: "Réservations actives", value: stats.bookingsCount,   color: "text-amber-400",  icon: "🎫" },
+                { label: "Réservations actives",  value: stats.bookingsCount,   color: "text-amber-400",  icon: "🎫" },
               ].map(s => (
                 <div key={s.label} className="bg-gray-900 border border-gray-800 rounded-2xl p-5 text-center">
                   <p className="text-2xl mb-1">{s.icon}</p>
                   <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
-                  <p className="text-gray-500 text-xs uppercase tracking-wider mt-1">{s.label}</p>
+                  <p className="text-gray-500 text-xs uppercase tracking-wider mt-1 leading-tight">{s.label}</p>
                 </div>
               ))}
             </div>
