@@ -1,9 +1,9 @@
 -- 1) Base de données
-CREATE DATABASE IF NOT EXISTS covoiturage
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
+-- CREATE DATABASE IF NOT EXISTS covoiturage
+  -- CHARACTER SET utf8mb4
+  -- COLLATE utf8mb4_unicode_ci;
 
-USE covoiturage;
+-- USE covoiturage;
 
 -- 2) Users
 CREATE TABLE IF NOT EXISTS users (
