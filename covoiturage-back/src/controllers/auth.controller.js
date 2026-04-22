@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { pool } from "../config/db.js";
+import { sendWelcomeEmail } from "../services/email.service.js";
 
 export async function register(req, res) {
   try {
@@ -15,9 +16,10 @@ export async function register(req, res) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const [existing] = await pool.execute("SELECT id FROM users WHERE email = ? LIMIT 1", [
-      normalizedEmail,
-    ]);
+    const [existing] = await pool.execute(
+      "SELECT id FROM users WHERE email = ? LIMIT 1",
+      [normalizedEmail]
+    );
     if (existing.length > 0) {
       return res.status(409).json({ message: "Cet email est déjà utilisé." });
     }
@@ -40,6 +42,9 @@ export async function register(req, res) {
       { expiresIn: process.env.JWT_EXPIRES_IN || "1d" }
     );
 
+    // Envoi email de bienvenue — non bloquant
+    sendWelcomeEmail({ name: name.trim(), email: normalizedEmail });
+
     return res.status(201).json({
       token,
       user: {
@@ -51,7 +56,6 @@ export async function register(req, res) {
       },
     });
   } catch (err) {
-    // En prod, on évite de renvoyer err.message
     return res.status(500).json({ message: "Erreur serveur lors de l'inscription." });
   }
 }
@@ -67,9 +71,7 @@ export async function login(req, res) {
     const normalizedEmail = email.trim().toLowerCase();
     const [rows] = await pool.execute(
       `SELECT id, name, email, phone, password_hash, role, is_active
-       FROM users
-       WHERE email = ?
-       LIMIT 1`,
+       FROM users WHERE email = ? LIMIT 1`,
       [normalizedEmail]
     );
 
@@ -118,9 +120,7 @@ export async function me(req, res) {
 
     const [rows] = await pool.execute(
       `SELECT id, name, email, phone, role, is_active
-       FROM users
-       WHERE id = ?
-       LIMIT 1`,
+       FROM users WHERE id = ? LIMIT 1`,
       [userId]
     );
 
