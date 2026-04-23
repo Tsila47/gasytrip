@@ -8,9 +8,11 @@ import {
   listMyRides,
   listMyBookings,
   cancelBooking,
+  cancelRide,
   createRideRating,
   updateRideRating,
   deleteRideRating,
+  getDriverProfile,
 } from "../controllers/rides.controller.js";
 
 const router = Router();
@@ -25,11 +27,12 @@ router.delete("/:id/rating", authMiddleware, deleteRideRating);
 
 // Public routes
 router.get("/", listRides);
+router.get("/driver/:id", getDriverProfile);
 router.get("/:id", getRideById);
 
 // Protected writes / actions
 router.post("/", authMiddleware, createRide);
 router.post("/:id/bookings", authMiddleware, createBooking);
+router.patch("/:id/cancel", authMiddleware, cancelRide);
 
 export default router;
-
