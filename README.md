@@ -40,8 +40,8 @@
 
 | Rôle | Fonctionnalités
 | Visiteur | Rechercher un trajet, voir le détail |
-| Utilisateur connecté | Réserver, annuler, publier un trajet |
-| Conducteur | Voir ses passagers, annuler ses trajets |
+| Utilisateur connecté | Réserver, annuler, noter un conducteur |
+| Conducteur | Publier, annuler, reposter un trajet + voir revenus estimés |
 | Admin | Gérer users, trajets et réservations via dashboard |
 
 ---
@@ -91,9 +91,11 @@ gasytrip/
 │       │   ├── RegisterPage.jsx         # Inscription
 │       │   ├── RideListPage.jsx         # Résultats de recherche
 │       │   ├── RideDetailPage.jsx       # Détail trajet + réservation
+│       │   ├── DriverProfilePage.jsx    # Profil public conducteur
 │       │   ├── MyBookingsPage.jsx       # Mes réservations (passager)
 │       │   ├── MyRidesPage.jsx          # Mes trajets (conducteur)
 │       │   ├── CreateRidePage.jsx       # Publier un trajet
+│       │   ├── ProfilePage.jsx          # Mon profil
 │       │   └── AdminDashboardPage.jsx   # Dashboard admin
 │       ├── services/
 │       │   └── api.js                   # Instance Axios + intercepteurs token
@@ -107,12 +109,14 @@ gasytrip/
 │   │   ├── controllers/
 │   │   │   ├── auth.controller.js       # register, login
 │   │   │   ├── rides.controller.js      # CRUD trajets + réservations
+│   │   │   ├── users.controller.js      # Profil public conducteur
 │   │   │   └── admin.controller.js      # Gestion users/rides/bookings
 │   │   ├── middleware/
 │   │   │   └── auth.middleware.js       # JWT verify + requireAdmin
 │   │   ├── routes/
 │   │   │   ├── auth.routes.js
 │   │   │   ├── rides.routes.js
+│   │   │   ├── users.routes.js
 │   │   │   └── admin.routes.js
 │   │   └── server.js                    # Express + CORS + routes
 │   ├── schema.sql                       # Script création des tables MySQL
@@ -224,6 +228,8 @@ rides       id, driver_id →users, vehicle_id →vehicles,
             price, seats_total, seats_available, status, description, created_at
 bookings    id, ride_id →rides, passenger_id →users,
             seats_booked, status, created_at
+ratings     id, ride_id →rides, passenger_id →users,
+            rating (1..5), comment, created_at
 ```
 
 ### Points notables
@@ -251,9 +257,11 @@ mysql -u root -p < covoiturage-back/schema.sql
 | `/register` | `RegisterPage` | Public |
 | `/rides` | `RideListPage` | Public |
 | `/rides/:id` | `RideDetailPage` | Public |
+| `/conducteurs/:id` | `DriverProfilePage` | Public |
 | `/me/reservations` | `MyBookingsPage` | Connecté |
 | `/me/rides` | `MyRidesPage` | Connecté |
 | `/me/rides/new` | `CreateRidePage` | Connecté |
+| `/me/profile` | `ProfilePage` | Connecté |
 | `/admin` | `AdminDashboardPage` | Admin uniquement |
 
 ---
@@ -268,18 +276,30 @@ Base URL production : `https://gasytrip-api.onrender.com/api`
 |---|---|---|---|
 | POST | `/auth/register` | `{ name, email, password, phone? }` | Non |
 | POST | `/auth/login` | `{ email, password }` | Non |
+| GET | `/auth/me` | — | Oui |
+| PATCH | `/auth/me` | `{ name, phone, photo_url }` | Oui |
 
 ### Trajets
 
 | Méthode | Route | Params / Body | Auth |
 |---|---|---|---|
-| GET | `/rides` | `?from=&to=&date=&seats=&price_max=` | Non |
+| GET | `/rides` | `?departure_city=&arrival_city=&departure_datetime=&price_max=&seats_min=&driver_id=` | Non |
 | GET | `/rides/:id` | — | Non |
-| POST | `/rides` | `{ vehicle_id, departure_city, arrival_city, departure_datetime, price, seats_total, description? }` | Oui |
+| POST | `/rides` | `{ departure_city, arrival_city, departure_datetime, price, seats_total, description?, vehicle_brand, vehicle_model, vehicle_plate }` | Oui |
 | GET | `/rides/me/rides` | — | Oui |
 | GET | `/rides/me/bookings` | — | Oui |
 | POST | `/rides/:id/bookings` | `{ seats_booked }` | Oui |
 | DELETE | `/rides/bookings/:id` | — | Oui |
+| PATCH | `/rides/:id/cancel` | — | Oui (conducteur du trajet) |
+| POST | `/rides/:id/rating` | `{ rating, comment? }` | Oui |
+| PUT | `/rides/:id/rating` | `{ rating, comment? }` | Oui |
+| DELETE | `/rides/:id/rating` | — | Oui |
+
+### Utilisateurs (public)
+
+| Méthode | Route | Auth |
+|---|---|---|
+| GET | `/users/:id/public` | Non |
 
 ### Admin
 
@@ -348,7 +368,6 @@ UPDATE users SET role = 'ADMIN' WHERE email = 'ton@email.com';
 ## Améliorations futures
 
 - Confirmation par email à l'inscription (Nodemailer + SendGrid/Resend)
-- Notation des conducteurs après un trajet
 - Système de messagerie entre conducteur et passager
 - Notifications push pour les réservations
 - Paiement en ligne (Orange Money, MVola)
