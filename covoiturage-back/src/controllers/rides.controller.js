@@ -533,5 +533,59 @@ export async function cancelBooking(req, res) {
   } finally {
     conn.release();
   }
+  
+}
+export async function cancelRide(req, res) {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ message: "Non authentifié." });
+  const { id: rideId } = req.params;
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [rideRows] = await conn.execute(
+      `SELECT id, driver_id, status FROM rides WHERE id = ? FOR UPDATE`, [rideId]
+    );
+    if (rideRows.length === 0) { await conn.rollback(); return res.status(404).json({ message: "Trajet introuvable." }); }
+    const ride = rideRows[0];
+    if (Number(ride.driver_id) !== Number(userId)) { await conn.rollback(); return res.status(403).json({ message: "Tu n'es pas le conducteur." }); }
+    if (ride.status !== "OPEN") { await conn.rollback(); return res.status(409).json({ message: "Ce trajet ne peut plus être annulé." }); }
+    await conn.execute(`UPDATE bookings SET status = 'CANCELLED' WHERE ride_id = ? AND status = 'CONFIRMED'`, [rideId]);
+    await conn.execute(`UPDATE rides SET status = 'CANCELLED', seats_available = seats_total WHERE id = ?`, [rideId]);
+    await conn.commit();
+    return res.json({ message: "Trajet annulé." });
+  } catch { await conn.rollback(); return res.status(500).json({ message: "Erreur serveur." }); }
+  finally { conn.release(); }
+}
+
+export async function getDriverProfile(req, res) {
+  const { id: driverId } = req.params;
+  try {
+    const [userRows] = await pool.execute(
+      `SELECT id, name, photo_url, created_at FROM users WHERE id = ? AND is_active = 1 LIMIT 1`, [driverId]
+    );
+    if (userRows.length === 0) return res.status(404).json({ message: "Conducteur introuvable." });
+    const driver = userRows[0];
+    const [statsRows] = await pool.execute(
+      `SELECT COUNT(DISTINCT r.id) AS rides_count, COALESCE(SUM(r.seats_total - r.seats_available), 0) AS passengers_count
+       FROM rides r WHERE r.driver_id = ? AND r.status != 'CANCELLED'`, [driverId]
+    );
+    const [ratingRows] = await pool.execute(
+      `SELECT ROUND(AVG(rt.rating), 1) AS avg_rating, COUNT(rt.id) AS rating_count
+       FROM ratings rt JOIN rides r ON r.id = rt.ride_id WHERE r.driver_id = ?`, [driverId]
+    );
+    const [ridesRows] = await pool.execute(
+      `SELECT r.id, r.departure_city, r.arrival_city, r.departure_datetime, r.price, r.seats_available, r.seats_total, r.status
+       FROM rides r WHERE r.driver_id = ? AND r.status = 'OPEN' AND r.departure_datetime >= NOW()
+       ORDER BY r.departure_datetime ASC LIMIT 5`, [driverId]
+    );
+    return res.json({
+      driver: {
+        id: driver.id, name: driver.name, photo_url: driver.photo_url, member_since: driver.created_at,
+        rides_count: statsRows[0].rides_count, passengers_count: statsRows[0].passengers_count,
+        avg_rating: ratingRows[0].avg_rating, rating_count: ratingRows[0].rating_count,
+      },
+      upcoming_rides: ridesRows,
+    });
+  } catch { return res.status(500).json({ message: "Erreur serveur." }); }
 }
 
