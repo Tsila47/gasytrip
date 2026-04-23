@@ -106,6 +106,7 @@ export default function RideListPage() {
   const [rides, setRides] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [activeSort, setActiveSort] = useState("closest");
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
@@ -127,6 +128,20 @@ export default function RideListPage() {
 
   const from = searchParams.get("departure_city");
   const to = searchParams.get("arrival_city");
+  const sortedRides = useMemo(() => {
+    const copy = [...rides];
+    if (activeSort === "price_asc") {
+      copy.sort((a, b) => Number(a.price) - Number(b.price));
+    } else if (activeSort === "seats_desc") {
+      copy.sort((a, b) => Number(b.seats_available) - Number(a.seats_available));
+    } else {
+      copy.sort(
+        (a, b) =>
+          new Date(a.departure_datetime).getTime() - new Date(b.departure_datetime).getTime()
+      );
+    }
+    return copy;
+  }, [rides, activeSort]);
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -161,13 +176,22 @@ export default function RideListPage() {
 
         {/* Filtres rapides */}
         <div className="flex gap-2 mb-6 flex-wrap">
-          {["Prix croissant", "Places dispo", "Plus proche"].map((f) => (
+          {[
+            { key: "price_asc", label: "Prix croissant" },
+            { key: "seats_desc", label: "Places dispo" },
+            { key: "closest", label: "Plus proche" },
+          ].map((f) => (
             <button
-              key={f}
+              key={f.key}
               type="button"
-              className="bg-gray-900 border border-gray-800 hover:border-indigo-500/50 text-gray-400 hover:text-white text-xs px-4 py-2 rounded-full transition-all"
+              onClick={() => setActiveSort(f.key)}
+              className={`text-xs px-4 py-2 rounded-full transition-all border ${
+                activeSort === f.key
+                  ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
+                  : "bg-gray-900 border-gray-800 hover:border-indigo-500/50 text-gray-400 hover:text-white"
+              }`}
             >
-              {f}
+              {f.label}
             </button>
           ))}
           <Link
@@ -214,7 +238,7 @@ export default function RideListPage() {
         {/* Liste */}
         {!loading && (
           <div className="space-y-4">
-            {rides.map((r, i) => (
+            {sortedRides.map((r, i) => (
               <RideCard key={r.id} r={r} index={i} />
             ))}
           </div>

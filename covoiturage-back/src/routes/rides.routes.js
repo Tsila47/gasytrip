@@ -8,11 +8,10 @@ import {
   listMyRides,
   listMyBookings,
   cancelBooking,
-  cancelRide,
+  cancelMyRide,
   createRideRating,
   updateRideRating,
   deleteRideRating,
-  getDriverProfile,
 } from "../controllers/rides.controller.js";
 
 const router = Router();
@@ -21,18 +20,18 @@ const router = Router();
 router.get("/me/rides", authMiddleware, listMyRides);
 router.get("/me/bookings", authMiddleware, listMyBookings);
 router.delete("/bookings/:id", authMiddleware, cancelBooking);
+router.patch("/:id/cancel", authMiddleware, cancelMyRide);
 router.post("/:id/rating", authMiddleware, createRideRating);
 router.put("/:id/rating", authMiddleware, updateRideRating);
 router.delete("/:id/rating", authMiddleware, deleteRideRating);
 
 // Public routes
 router.get("/", listRides);
-router.get("/driver/:id", getDriverProfile);
 router.get("/:id", getRideById);
 
 // Protected writes / actions
 router.post("/", authMiddleware, createRide);
 router.post("/:id/bookings", authMiddleware, createBooking);
-router.patch("/:id/cancel", authMiddleware, cancelRide);
 
 export default router;
+
