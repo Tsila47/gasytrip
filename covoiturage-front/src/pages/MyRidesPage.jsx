@@ -29,7 +29,17 @@ function SkeletonCard() {
   );
 }
 
-function RideCard({ r, index, onCancel }) {
+function getDaysLeftLabel(departureDatetime) {
+  const now = Date.now();
+  const departure = new Date(departureDatetime).getTime();
+  const diffMs = departure - now;
+  if (diffMs <= 0) return "Passé";
+  const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  if (days === 1) return "Demain";
+  return `J-${days}`;
+}
+
+function RideCard({ r, index, onCancel, onRepost, busy }) {
   const status = STATUS_CONFIG[r.status] || STATUS_CONFIG.COMPLETED;
   const occupancyPct = r.seats_total > 0
     ? Math.round(((r.seats_total - r.seats_available) / r.seats_total) * 100)
@@ -61,6 +71,11 @@ function RideCard({ r, index, onCancel }) {
         <span className={`ml-auto text-xs font-semibold px-3 py-1 rounded-full border ${status.cls}`}>
           {status.label}
         </span>
+        {r.status === "OPEN" && (
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full border bg-indigo-500/15 text-indigo-300 border-indigo-500/30">
+            {getDaysLeftLabel(r.departure_datetime)}
+          </span>
+        )}
       </div>
 
       {/* Infos grid */}
@@ -103,6 +118,15 @@ function RideCard({ r, index, onCancel }) {
         </div>
         <span className="text-gray-500 text-xs shrink-0">{occupancyPct}% occupé</span>
 
+        <button
+          type="button"
+          onClick={() => onRepost(r.id)}
+          disabled={busy}
+          className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 disabled:opacity-50 transition-all"
+        >
+          {busy ? "Repost..." : "Reposter"}
+        </button>
+
         {/* Bouton annuler — visible seulement si OPEN */}
         {r.status === "OPEN" && (
           <button
@@ -123,6 +147,8 @@ export default function MyRidesPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [cancelling, setCancelling] = useState(null);
+  const [reposting, setReposting] = useState(null);
+  const [success, setSuccess] = useState("");
 
   async function loadRides() {
     setLoading(true);
@@ -148,9 +174,62 @@ export default function MyRidesPage() {
     }
   }
 
+  async function handleRepost(rideId) {
+    const defaultDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 16);
+    const departureInput = window.prompt(
+      "Nouvelle date/heure de départ (format: YYYY-MM-DDTHH:mm)",
+      defaultDate
+    );
+    if (!departureInput) return;
+
+    setReposting(rideId);
+    setError("");
+    setSuccess("");
+    try {
+      const { data } = await api.get(`/rides/${rideId}`);
+      const ride = data.ride;
+      await api.post("/rides", {
+        departure_city: ride.departure_city,
+        arrival_city: ride.arrival_city,
+        departure_datetime: departureInput,
+        price: ride.price,
+        seats_total: ride.seats_total,
+        description: ride.description,
+        vehicle_brand: ride.vehicle_brand,
+        vehicle_model: ride.vehicle_model,
+        vehicle_plate: ride.vehicle_plate,
+      });
+      setSuccess("Trajet reposté avec succès.");
+      await loadRides();
+    } catch (err) {
+      setError(err.response?.data?.message || "Impossible de reposter ce trajet.");
+    } finally {
+      setReposting(null);
+    }
+  }
+
   const openCount      = rides.filter(r => r.status === "OPEN").length;
   const cancelledCount = rides.filter(r => r.status === "CANCELLED").length;
   const completedCount = rides.filter(r => r.status === "COMPLETED").length;
+  const completedRevenue = rides
+    .filter((r) => r.status === "COMPLETED")
+    .reduce(
+      (sum, r) => sum + (Number(r.seats_total) - Number(r.seats_available)) * Number(r.price),
+      0
+    );
+  const upcomingRevenue = rides
+    .filter((r) => r.status === "OPEN")
+    .reduce(
+      (sum, r) => sum + (Number(r.seats_total) - Number(r.seats_available)) * Number(r.price),
+      0
+    );
+  const totalRevenue = completedRevenue + upcomingRevenue;
+  const upcomingRides = rides.filter(
+    (r) => r.status === "OPEN" && new Date(r.departure_datetime).getTime() > Date.now()
+  );
+  const historyRides = rides.filter((r) => !upcomingRides.some((up) => up.id === r.id));
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -195,10 +274,32 @@ export default function MyRidesPage() {
           </div>
         )}
 
+        {rides.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Revenu estimé total</p>
+              <p className="text-emerald-400 text-xl font-bold">{totalRevenue.toLocaleString()} Ar</p>
+            </div>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Revenu trajets terminés</p>
+              <p className="text-indigo-300 text-xl font-bold">{completedRevenue.toLocaleString()} Ar</p>
+            </div>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Revenu trajets en cours</p>
+              <p className="text-amber-300 text-xl font-bold">{upcomingRevenue.toLocaleString()} Ar</p>
+            </div>
+          </div>
+        )}
+
         {/* Erreur */}
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-6">
             {error}
+          </div>
+        )}
+        {success && (
+          <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3 mb-6">
+            {success}
           </div>
         )}
 
@@ -229,14 +330,40 @@ export default function MyRidesPage() {
         )}
 
         {/* Liste */}
+        {!loading && upcomingRides.length > 0 && (
+          <>
+            <h2 className="text-sm font-semibold text-indigo-300 mb-3 uppercase tracking-wider">
+              Trajets à venir
+            </h2>
+            <div className="space-y-4 mb-8">
+              {upcomingRides.map((r, i) => (
+                <RideCard
+                  key={r.id}
+                  r={r}
+                  index={i}
+                  onCancel={handleCancel}
+                  onRepost={handleRepost}
+                  busy={reposting === r.id}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {!loading && historyRides.length > 0 && (
+          <h2 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">Historique</h2>
+        )}
+
         {!loading && (
           <div className="space-y-4">
-            {rides.map((r, i) => (
+            {historyRides.map((r, i) => (
               <RideCard
                 key={r.id}
                 r={r}
                 index={i}
                 onCancel={handleCancel}
+                onRepost={handleRepost}
+                busy={reposting === r.id}
               />
             ))}
           </div>
