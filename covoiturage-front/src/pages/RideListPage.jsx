@@ -4,16 +4,24 @@ import api from "../services/api.js";
 
 function RideCardSkeleton() {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 animate-pulse">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="h-5 w-32 bg-gray-800 rounded-lg" />
-        <div className="h-5 w-4 bg-gray-800 rounded" />
-        <div className="h-5 w-32 bg-gray-800 rounded-lg" />
-      </div>
-      <div className="flex gap-3">
-        <div className="h-4 w-28 bg-gray-800 rounded" />
-        <div className="h-4 w-20 bg-gray-800 rounded" />
-        <div className="h-4 w-24 bg-gray-800 rounded" />
+    <div className="bg-gray-900/50 backdrop-blur-md border border-white/5 rounded-3xl p-6 animate-pulse shadow-lg">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-6 w-32 bg-gray-800/80 rounded-lg" />
+            <div className="h-5 w-5 bg-gray-800/80 rounded-full" />
+            <div className="h-6 w-32 bg-gray-800/80 rounded-lg" />
+          </div>
+          <div className="flex gap-3">
+            <div className="h-6 w-28 bg-gray-800/80 rounded-full" />
+            <div className="h-6 w-24 bg-gray-800/80 rounded-full" />
+            <div className="h-6 w-32 bg-gray-800/80 rounded-full" />
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-3">
+          <div className="h-8 w-24 bg-gray-800/80 rounded-lg" />
+          <div className="h-10 w-24 bg-gray-800/80 rounded-xl" />
+        </div>
       </div>
     </div>
   );
@@ -22,79 +30,82 @@ function RideCardSkeleton() {
 function RideCard({ r, index }) {
   return (
     <div
-      className="bg-gray-900 border border-gray-800 hover:border-indigo-500/60 rounded-2xl p-6 flex items-center justify-between gap-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/5 group"
+      className="relative bg-gray-900/60 backdrop-blur-xl border border-white/5 hover:border-indigo-500/30 rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.4)] hover:shadow-indigo-500/10 group overflow-hidden"
       style={{
         animationName: "fadeSlideIn",
-        animationDuration: "0.4s",
-        animationTimingFunction: "ease-out",
+        animationDuration: "0.5s",
+        animationTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
         animationFillMode: "both",
-        animationDelay: `${index * 60}ms`,
+        animationDelay: `${index * 50}ms`,
       }}
     >
-      <div className="flex-1 min-w-0">
+      {/* Glow Effect */}
+      <div className="absolute top-0 left-1/4 w-1/2 h-full bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
+
+      <div className="flex-1 min-w-0 w-full relative z-10">
         {/* Route */}
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-white font-bold text-lg truncate">{r.departure_city}</span>
-          <span className="text-indigo-400 shrink-0">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-white font-extrabold text-xl md:text-2xl tracking-tight truncate">{r.departure_city}</span>
+          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shrink-0 group-hover:scale-110 transition-transform duration-300">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
               <path d="M5 12h14M12 5l7 7-7 7"/>
             </svg>
           </span>
-          <span className="text-white font-bold text-lg truncate">{r.arrival_city}</span>
+          <span className="text-white font-extrabold text-xl md:text-2xl tracking-tight truncate">{r.arrival_city}</span>
         </div>
 
-        {/* Infos */}
-        <div className="flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-1.5 bg-gray-800 text-gray-300 text-xs px-3 py-1.5 rounded-full">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3 shrink-0">
+        {/* Infos Badges */}
+        <div className="flex flex-wrap gap-2.5">
+          <span className="inline-flex items-center gap-2 bg-gray-800/80 backdrop-blur-sm border border-white/5 text-gray-300 text-xs px-3.5 py-2 rounded-full font-medium">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 text-indigo-400">
               <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
             </svg>
-            {new Date(r.departure_datetime).toLocaleString("fr-MG")}
+            {new Date(r.departure_datetime).toLocaleString("fr-MG", { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit' })}
           </span>
-          <span className="inline-flex items-center gap-1.5 bg-gray-800 text-gray-300 text-xs px-3 py-1.5 rounded-full">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3 shrink-0">
+          <span className="inline-flex items-center gap-2 bg-gray-800/80 backdrop-blur-sm border border-white/5 text-gray-300 text-xs px-3.5 py-2 rounded-full font-medium">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 text-cyan-400">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>
             {r.driver_name}
           </span>
-          <span className="inline-flex items-center gap-1.5 bg-gray-800 text-gray-300 text-xs px-3 py-1.5 rounded-full">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3 shrink-0">
+          <span className="inline-flex items-center gap-2 bg-gray-800/80 backdrop-blur-sm border border-white/5 text-gray-300 text-xs px-3.5 py-2 rounded-full font-medium">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 text-purple-400">
               <path d="M5 17H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h13l4 4v6a2 2 0 0 1-2 2h-2"/>
               <circle cx="8.5" cy="17" r="2.5"/><circle cx="17.5" cy="17" r="2.5"/>
             </svg>
             {r.vehicle_brand} {r.vehicle_model}
           </span>
-          <span className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-medium ${
+          <span className={`inline-flex items-center gap-2 text-xs px-3.5 py-2 rounded-full font-bold border ${
             r.seats_available === 0
-              ? "bg-red-500/15 text-red-400"
+              ? "bg-red-500/10 border-red-500/20 text-red-400"
               : r.seats_available <= 2
-              ? "bg-amber-500/15 text-amber-400"
-              : "bg-green-500/15 text-green-400"
+              ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+              : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
           }`}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3 shrink-0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
               <path d="M20 9V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3"/>
               <path d="M20 15v4M20 15H9"/>
             </svg>
             {r.seats_available === 0
               ? "Complet"
-              : `${r.seats_available} place${r.seats_available > 1 ? "s" : ""}`}
+              : `${r.seats_available} place${r.seats_available > 1 ? "s" : ""} dispo`}
           </span>
         </div>
       </div>
 
       {/* Prix + CTA */}
-      <div className="text-right shrink-0 flex flex-col items-end gap-3">
-        <div>
-          <p className="text-indigo-400 font-bold text-2xl leading-none">
+      <div className="w-full md:w-auto flex md:flex-col items-center md:items-end justify-between gap-4 relative z-10 shrink-0">
+        <div className="text-left md:text-right">
+          <p className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400 font-black text-3xl md:text-4xl leading-none">
             {Number(r.price).toLocaleString()}
           </p>
-          <p className="text-gray-500 text-xs mt-0.5">Ariary / place</p>
+          <p className="text-gray-500 text-xs mt-1 font-medium uppercase tracking-wider">Ariary / place</p>
         </div>
         <Link
           to={`/rides/${r.id}`}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-all duration-200 group-hover:scale-105 inline-block"
+          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-bold px-8 py-3 rounded-2xl transition-all duration-300 shadow-lg shadow-indigo-500/25 group-hover:shadow-indigo-500/40 hover:scale-[1.05]"
         >
-          Voir →
+          Réserver
         </Link>
       </div>
     </div>
