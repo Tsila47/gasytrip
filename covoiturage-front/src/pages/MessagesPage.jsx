@@ -26,6 +26,8 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState([]);
   const [rideInfo, setRideInfo] = useState(null);
   const [otherUserName, setOtherUserName] = useState("");
+  const [contacts, setContacts] = useState([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [loadingThread, setLoadingThread] = useState(false);
@@ -46,18 +48,21 @@ export default function MessagesPage() {
     return () => { mounted = false; };
   }, []);
 
-  // Si on arrive avec ?ride=X&with=Y et qu'aucune conversation n'existe encore,
-  // on tente d'afficher l'en-tête à partir des contacts du trajet.
+  // Contacts du trajet: utile pour démarrer une conversation même si la liste est vide.
   useEffect(() => {
     async function bootstrapThread() {
-      if (!activeRideId || !activeUserId) return;
+      if (!activeRideId) return;
       try {
+        setLoadingContacts(true);
         const { data } = await api.get(`/messages/ride/${activeRideId}/contacts`);
         setRideInfo(data.ride || null);
         const list = Array.isArray(data.contacts) ? data.contacts : [data.contacts].filter(Boolean);
+        setContacts(list);
+        if (!activeUserId) return;
         const target = list.find((c) => Number(c.id) === Number(activeUserId));
         if (target) setOtherUserName(target.name);
       } catch (err) { /* noop */ }
+      finally { setLoadingContacts(false); }
     }
     bootstrapThread();
   }, [activeRideId, activeUserId]);
@@ -248,13 +253,59 @@ export default function MessagesPage() {
 
           {/* Thread */}
           <section className="bg-gray-900/40 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden flex flex-col">
-            {!activeRideId || !activeUserId ? (
+            {!activeRideId ? (
               <div className="flex-1 flex items-center justify-center text-gray-400 text-center px-8">
                 <div>
                   <div className="w-20 h-20 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4 text-3xl">✉️</div>
                   <p className="font-bold text-white">Sélectionnez une conversation</p>
                   <p className="text-sm mt-1">ou démarrez-en une depuis "Mes réservations" ou "Mes trajets".</p>
                 </div>
+              </div>
+            ) : !activeUserId ? (
+              <div className="flex-1 p-6">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <p className="text-white font-bold text-lg">Choisir un contact</p>
+                    <p className="text-gray-400 text-sm">
+                      Sélectionne une personne pour ce trajet afin de commencer la conversation.
+                    </p>
+                  </div>
+                </div>
+
+                {loadingContacts && (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-14 bg-white/5 rounded-2xl animate-pulse" />
+                    ))}
+                  </div>
+                )}
+
+                {!loadingContacts && contacts.length === 0 && (
+                  <div className="text-center text-gray-400 text-sm py-10">
+                    Aucun contact disponible pour ce trajet (il faut une réservation confirmée).
+                  </div>
+                )}
+
+                {!loadingContacts && contacts.length > 0 && (
+                  <div className="space-y-2">
+                    {contacts.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => selectConversation(activeRideId, c.id, c.name)}
+                        className="w-full text-left px-5 py-4 rounded-2xl border border-white/5 hover:bg-white/5 transition-colors flex items-center gap-3"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold shrink-0">
+                          {c.name?.charAt(0).toUpperCase() || "?"}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-white font-bold truncate">{c.name}</p>
+                          <p className="text-xs text-gray-400">Démarrer la conversation</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <>
