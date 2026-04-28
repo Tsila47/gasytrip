@@ -19,8 +19,12 @@ export function connectSocket(token) {
 
   socket = io(getSocketUrl(), {
     auth: { token },
-    transports: ["websocket"],
+    // En prod, certains réseaux/proxy bloquent WebSocket → on garde aussi le fallback polling.
+    transports: ["websocket", "polling"],
     withCredentials: true,
+    reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 500,
   });
 
   return socket;
