@@ -15,6 +15,7 @@ import CreateRidePage from "./pages/CreateRidePage.jsx";
 import AdminDashboardPage from "./pages/AdminDashboardPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import DriverProfilePage from "./pages/DriverProfilePage.jsx";
+import NotificationsPage from "./pages/NotificationsPage.jsx";
 import "./index.css";
 import Footer from "./compenents/Footer.jsx";
 import NotFoundPage from "./pages/NotFoundPage.jsx"; 
@@ -34,9 +35,10 @@ function App() {
           <Route path="/rides/:id" element={<RideDetailPage />} />
           <Route path="/conducteurs/:id" element={<DriverProfilePage />} />
           <Route element={<ProtectedRoute />}>
-            <Route path="/me/reservations" element={<MyBookingsPage />} />
             <Route path="/me/rides" element={<MyRidesPage />} />
             <Route path="/me/rides/new" element={<CreateRidePage />} />
+            <Route path="/me/reservations" element={<MyBookingsPage />} />
+            <Route path="/me/notifications" element={<NotificationsPage />} />
           </Route>
           <Route element={<ProtectedRoute requireAdmin={true} />}>
             <Route path="/admin" element={<AdminDashboardPage />} />

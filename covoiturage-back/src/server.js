@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.routes.js";
 import ridesRoutes from "./routes/rides.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import usersRoutes from "./routes/users.routes.js";
+import notificationsRoutes from "./routes/notifications.routes.js";
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/rides", ridesRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/notifications", notificationsRoutes);
 
 const port = process.env.PORT || 4000;
 app.listen(port, () => {
