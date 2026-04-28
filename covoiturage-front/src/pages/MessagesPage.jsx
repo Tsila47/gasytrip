@@ -180,6 +180,29 @@ export default function MessagesPage() {
       const saved = data?.message;
       if (saved?.id) {
         setMessages((prev) => prev.map((m) => (m.id === optimistic.id ? saved : m)));
+
+        // Même si le socket ne fonctionne pas (proxy/réseau), on met à jour la liste localement.
+        setConversations((prev) => {
+          const next = Array.isArray(prev) ? [...prev] : [];
+          const rideId = Number(saved.ride_id);
+          const otherId = Number(activeUserId);
+          const idx = next.findIndex(
+            (c) => Number(c.ride_id) === rideId && Number(c.other_user_id) === otherId
+          );
+          if (idx >= 0) {
+            const cur = next[idx];
+            next[idx] = {
+              ...cur,
+              last_message: saved.content,
+              last_at: saved.created_at,
+              unread_count: 0,
+            };
+            const [moved] = next.splice(idx, 1);
+            next.unshift(moved);
+            return next;
+          }
+          return next;
+        });
       }
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
