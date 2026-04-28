@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api.js";
-
 function getDaysLeftLabel(departureDatetime) {
   const now = Date.now();
   const departure = new Date(departureDatetime).getTime();

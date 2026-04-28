@@ -128,3 +128,32 @@ CREATE TABLE IF NOT EXISTS notifications (
     ON DELETE CASCADE
     ON UPDATE CASCADE
 ) ENGINE=InnoDB;
+
+-- 8) Messages (chat conducteur/passager sur un trajet)
+CREATE TABLE IF NOT EXISTS messages (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  ride_id BIGINT UNSIGNED NOT NULL,
+  sender_id BIGINT UNSIGNED NOT NULL,
+  receiver_id BIGINT UNSIGNED NOT NULL,
+  content VARCHAR(2000) NOT NULL,
+  is_read TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_messages_ride (ride_id),
+  KEY idx_messages_sender (sender_id),
+  KEY idx_messages_receiver (receiver_id),
+  KEY idx_messages_thread (ride_id, sender_id, receiver_id, created_at),
+  KEY idx_messages_unread (receiver_id, is_read, created_at),
+  CONSTRAINT fk_messages_ride
+    FOREIGN KEY (ride_id) REFERENCES rides(id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT fk_messages_sender
+    FOREIGN KEY (sender_id) REFERENCES users(id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT fk_messages_receiver
+    FOREIGN KEY (receiver_id) REFERENCES users(id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+) ENGINE=InnoDB;
