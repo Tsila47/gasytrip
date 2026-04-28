@@ -1,5 +1,5 @@
 import express from "express";
-import { authenticate } from "../middleware/auth.js";
+import { authenticate } from "../middleware/auth.middleware.js";
 import {
   getMyNotifications,
   markAsRead,
