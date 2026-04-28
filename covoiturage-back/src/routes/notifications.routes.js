@@ -1,5 +1,5 @@
 import express from "express";
-import { authenticate } from "../middleware/auth.middleware.js";
+import { authMiddleware } from "../middleware/auth.middleware.js";
 import {
   getMyNotifications,
   markAsRead,
@@ -8,7 +8,7 @@ import {
 
 const router = express.Router();
 
-router.use(authenticate);
+router.use(authMiddleware);
 
 router.get("/", getMyNotifications);
 router.patch("/mark-all-read", markAllAsRead);
