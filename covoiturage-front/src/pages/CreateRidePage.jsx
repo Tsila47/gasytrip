@@ -26,10 +26,21 @@ export default function CreateRidePage() {
     setSuccess("");
     setLoading(true);
     try {
+      const priceNum = form.price === "" ? undefined : Number(form.price);
+      const seatsTotalNum = form.seats_total === "" ? undefined : Number(form.seats_total);
+      if (priceNum === undefined || !Number.isFinite(priceNum) || priceNum < 0) {
+        setError("Prix invalide. Utilise un nombre (ex: 25000).");
+        return;
+      }
+      if (seatsTotalNum === undefined || !Number.isFinite(seatsTotalNum) || seatsTotalNum <= 0) {
+        setError("Nombre de places invalide.");
+        return;
+      }
+
       await api.post("/rides", {
         ...form,
-        price: form.price === "" ? undefined : Number(form.price),
-        seats_total: form.seats_total === "" ? undefined : Number(form.seats_total),
+        price: priceNum,
+        seats_total: seatsTotalNum,
       });
       setSuccess("Trajet publié avec succès !");
       setTimeout(() => navigate("/me/rides"), 1500);

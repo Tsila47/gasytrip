@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api.js";
 function getDaysLeftLabel(departureDatetime) {
   const now = Date.now();
@@ -17,6 +17,7 @@ function isUpcomingBooking(booking) {
 }
 
 export default function MyBookingsPage() {
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -149,6 +150,13 @@ export default function MyBookingsPage() {
   const upcomingBookings = bookings.filter(isUpcomingBooking);
   const pastOrCancelledBookings = bookings.filter((booking) => !isUpcomingBooking(booking));
 
+  function goToChat(booking) {
+    const rideId = booking?.ride_id;
+    const driverId = booking?.driver_id;
+    if (!rideId || !driverId) return;
+    navigate(`/me/messages?ride=${rideId}&with=${driverId}`);
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0f1c] text-white pt-24 pb-12 relative overflow-hidden selection:bg-indigo-500/30">
       {/* Background Effects */}
@@ -243,13 +251,22 @@ export default function MyBookingsPage() {
                         </div>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleCancel(b.id)}
-                      className="shrink-0 text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 border border-red-500/30 text-sm font-bold px-5 py-2.5 rounded-xl transition-all"
-                    >
-                      Annuler la réservation
-                    </button>
+                    <div className="shrink-0 flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => goToChat(b)}
+                        className="text-indigo-300 hover:text-white bg-indigo-500/10 hover:bg-indigo-500 border border-indigo-500/30 text-sm font-bold px-5 py-2.5 rounded-xl transition-all"
+                      >
+                        Message
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCancel(b.id)}
+                        className="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 border border-red-500/30 text-sm font-bold px-5 py-2.5 rounded-xl transition-all"
+                      >
+                        Annuler
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
