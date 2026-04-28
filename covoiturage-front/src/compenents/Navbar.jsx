@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import api from "../services/api.js";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -16,6 +17,21 @@ export default function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchNotifs = async () => {
+      try {
+        const { data } = await api.get("/notifications");
+        setUnreadCount(data.unreadCount || 0);
+      } catch (err) {}
+    };
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   function handleLogout() {
     logout();
@@ -97,6 +113,12 @@ export default function Navbar() {
                Publier
              </Link>
              <div className="h-6 w-px bg-white/10 mx-2"></div>
+             <Link to="/me/notifications" className="relative p-2 text-gray-400 hover:text-indigo-400 transition-colors" title="Notifications">
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+               {unreadCount > 0 && (
+                 <span className="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0a0f1c] box-content"></span>
+               )}
+             </Link>
              <Link to="/me/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
                  {user.username?.charAt(0).toUpperCase() || "U"}
@@ -149,6 +171,13 @@ export default function Navbar() {
                 className="text-indigo-400 hover:bg-white/5 px-4 py-3 rounded-xl text-base font-bold transition-colors flex items-center gap-2">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
                 Publier un trajet
+              </Link>
+              <Link to="/me/notifications" onClick={closeMenu}
+                className="text-gray-300 hover:text-white hover:bg-white/5 px-4 py-3 rounded-xl text-base transition-colors flex items-center justify-between">
+                <span>Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{unreadCount}</span>
+                )}
               </Link>
               <Link to="/me/reservations" onClick={closeMenu}
                 className="text-gray-300 hover:text-white hover:bg-white/5 px-4 py-3 rounded-xl text-base transition-colors">

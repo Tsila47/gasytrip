@@ -243,7 +243,7 @@ export async function createBooking(req, res) {
     await conn.beginTransaction();
 
     const [rideRows] = await conn.execute(
-      `SELECT id, seats_available, status, departure_datetime
+      `SELECT id, driver_id, departure_city, arrival_city, seats_available, status, departure_datetime
        FROM rides
        WHERE id = ?
        FOR UPDATE`,
@@ -282,6 +282,11 @@ export async function createBooking(req, res) {
        SET seats_available = seats_available - ?
        WHERE id = ?`,
       [seatsBookedNum, rideId]
+    );
+
+    await conn.execute(
+      `INSERT INTO notifications (user_id, type, message, created_at) VALUES (?, 'BOOKING_NEW', ?, NOW())`,
+      [ride.driver_id, `Nouvelle réservation : ${seatsBookedNum} place(s) pour ${ride.departure_city} → ${ride.arrival_city}.`]
     );
 
     await conn.commit();
@@ -488,6 +493,9 @@ export async function cancelBooking(req, res) {
          b.ride_id,
          b.status,
          b.seats_booked,
+         r.driver_id,
+         r.departure_city,
+         r.arrival_city,
          r.status AS ride_status,
          r.seats_available AS seats_available,
          r.seats_total AS seats_total
@@ -525,6 +533,11 @@ export async function cancelBooking(req, res) {
       [booking.seats_booked, booking.ride_id]
     );
 
+    await conn.execute(
+      `INSERT INTO notifications (user_id, type, message, created_at) VALUES (?, 'BOOKING_CANCELLED', ?, NOW())`,
+      [booking.driver_id, `Un passager a annulé sa réservation (${booking.seats_booked} place(s)) pour ${booking.departure_city} → ${booking.arrival_city}.`]
+    );
+
     await conn.commit();
     return res.json({ message: "Réservation annulée." });
   } catch {
@@ -545,7 +558,7 @@ export async function cancelMyRide(req, res) {
     await conn.beginTransaction();
 
     const [rideRows] = await conn.execute(
-      `SELECT id, status, driver_id
+      `SELECT id, status, driver_id, departure_city, arrival_city
        FROM rides
        WHERE id = ?
        FOR UPDATE`,
@@ -565,6 +578,18 @@ export async function cancelMyRide(req, res) {
     if (ride.status !== "OPEN") {
       await conn.rollback();
       return res.status(409).json({ message: "Ce trajet ne peut plus être annulé." });
+    }
+
+    const [passengers] = await conn.execute(
+      `SELECT passenger_id FROM bookings WHERE ride_id = ? AND status = 'CONFIRMED'`,
+      [rideId]
+    );
+
+    for (const p of passengers) {
+      await conn.execute(
+        `INSERT INTO notifications (user_id, type, message, created_at) VALUES (?, 'RIDE_CANCELLED', ?, NOW())`,
+        [p.passenger_id, `Le conducteur a annulé le trajet ${ride.departure_city} → ${ride.arrival_city}.`]
+      );
     }
 
     await conn.execute(
