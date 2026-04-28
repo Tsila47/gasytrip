@@ -119,6 +119,11 @@ export default function Navbar() {
                  <span className="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0a0f1c] box-content"></span>
                )}
              </Link>
+             <Link to="/me/messages" className="relative p-2 text-gray-400 hover:text-indigo-400 transition-colors" title="Messages">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.8L3 21l1.8-5A8.96 8.96 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+              </Link>
              <Link to="/me/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
                  {user.username?.charAt(0).toUpperCase() || "U"}
@@ -178,6 +183,10 @@ export default function Navbar() {
                 {unreadCount > 0 && (
                   <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{unreadCount}</span>
                 )}
+              </Link>
+              <Link to="/me/messages" onClick={closeMenu}
+                className="text-gray-300 hover:text-white hover:bg-white/5 px-4 py-3 rounded-xl text-base transition-colors">
+                Messages
               </Link>
               <Link to="/me/reservations" onClick={closeMenu}
                 className="text-gray-300 hover:text-white hover:bg-white/5 px-4 py-3 rounded-xl text-base transition-colors">

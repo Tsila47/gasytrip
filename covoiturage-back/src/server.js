@@ -1,12 +1,15 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import http from "http";
 import { pool } from "./config/db.js";
+import { initSocket } from "./config/socket.js";
 import authRoutes from "./routes/auth.routes.js";
 import ridesRoutes from "./routes/rides.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import usersRoutes from "./routes/users.routes.js";
 import notificationsRoutes from "./routes/notifications.routes.js";
+import messagesRoutes from "./routes/messages.routes.js";
 
 dotenv.config();
 
@@ -40,8 +43,13 @@ app.use("/api/rides", ridesRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/notifications", notificationsRoutes);
+app.use("/api/messages", messagesRoutes);
 
 const port = process.env.PORT || 4000;
-app.listen(port, () => {
+
+const httpServer = http.createServer(app);
+initSocket(httpServer, { corsOptions });
+
+httpServer.listen(port, () => {
   console.log(`API covoiturage backend sur http://localhost:${port}`);
 });

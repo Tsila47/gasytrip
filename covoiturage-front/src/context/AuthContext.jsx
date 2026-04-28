@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { connectSocket, disconnectSocket } from "../services/socket.js";
 
 function decodeJwtPayload(token) {
   try {
@@ -36,12 +37,20 @@ export function AuthProvider({ children }) {
     localStorage.setItem("token", token);
     const payload = decodeJwtPayload(token);
     setUser(payload);
+    connectSocket(token);
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem("token");
     setUser(null);
+    disconnectSocket();
   }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (user && token) connectSocket(token);
+    if (!user) disconnectSocket();
+  }, [user]);
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
