@@ -38,43 +38,53 @@ async function assertCanChat(rideId, userId, otherUserId) {
 export async function getConversations(req, res) {
   try {
     const userId = req.user.id;
-    // Liste des conversations distinctes : (ride_id, other_user) avec dernier message + non-lus
+    // Aiven/MySQL a souvent ONLY_FULL_GROUP_BY → éviter GROUP BY sur colonnes non agrégées.
+    // On construit d'abord la liste DISTINCT des threads (ride_id + other_user), puis on enrichit.
     const [rows] = await pool.query(
       `SELECT
-         m.ride_id,
-         CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END AS other_user_id,
+         c.ride_id,
+         c.other_user_id,
          u.name AS other_user_name,
          r.departure_city,
          r.arrival_city,
          r.departure_datetime,
          (
-           SELECT m2.content FROM messages m2
-           WHERE m2.ride_id = m.ride_id
-             AND ((m2.sender_id = ? AND m2.receiver_id = (CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END))
-               OR (m2.receiver_id = ? AND m2.sender_id = (CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END)))
-           ORDER BY m2.created_at DESC LIMIT 1
+           SELECT m2.content
+           FROM messages m2
+           WHERE m2.ride_id = c.ride_id
+             AND ((m2.sender_id = ? AND m2.receiver_id = c.other_user_id)
+               OR (m2.receiver_id = ? AND m2.sender_id = c.other_user_id))
+           ORDER BY m2.created_at DESC
+           LIMIT 1
          ) AS last_message,
          (
-           SELECT m2.created_at FROM messages m2
-           WHERE m2.ride_id = m.ride_id
-             AND ((m2.sender_id = ? AND m2.receiver_id = (CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END))
-               OR (m2.receiver_id = ? AND m2.sender_id = (CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END)))
-           ORDER BY m2.created_at DESC LIMIT 1
+           SELECT m2.created_at
+           FROM messages m2
+           WHERE m2.ride_id = c.ride_id
+             AND ((m2.sender_id = ? AND m2.receiver_id = c.other_user_id)
+               OR (m2.receiver_id = ? AND m2.sender_id = c.other_user_id))
+           ORDER BY m2.created_at DESC
+           LIMIT 1
          ) AS last_at,
          (
-           SELECT COUNT(*) FROM messages m3
-           WHERE m3.ride_id = m.ride_id
+           SELECT COUNT(*)
+           FROM messages m3
+           WHERE m3.ride_id = c.ride_id
              AND m3.receiver_id = ?
-             AND m3.sender_id = (CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END)
+             AND m3.sender_id = c.other_user_id
              AND m3.is_read = 0
          ) AS unread_count
-       FROM messages m
-       JOIN users u ON u.id = (CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END)
-       JOIN rides r ON r.id = m.ride_id
-       WHERE m.sender_id = ? OR m.receiver_id = ?
-       GROUP BY m.ride_id, other_user_id
+       FROM (
+         SELECT DISTINCT
+           m.ride_id,
+           CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END AS other_user_id
+         FROM messages m
+         WHERE m.sender_id = ? OR m.receiver_id = ?
+       ) c
+       JOIN users u ON u.id = c.other_user_id
+       JOIN rides r ON r.id = c.ride_id
        ORDER BY last_at DESC`,
-      [userId, userId, userId, userId, userId, userId, userId, userId, userId, userId, userId, userId, userId, userId]
+      [userId, userId, userId, userId, userId, userId, userId, userId, userId]
     );
     res.json({ conversations: rows });
   } catch (err) {
@@ -157,19 +167,7 @@ export async function sendMessage(req, res) {
       created_at: new Date().toISOString(),
     };
 
-    // Notification au destinataire
-    const [meRows] = await pool.query(`SELECT name FROM users WHERE id = ? LIMIT 1`, [userId]);
-    const senderName = meRows[0]?.name || "Quelqu'un";
-    await pool.query(
-      `INSERT INTO notifications (user_id, type, title, message, link, created_at)
-       VALUES (?, 'MESSAGE_NEW', ?, ?, ?, NOW())`,
-      [
-        otherUserId,
-        "Nouveau message",
-        `${senderName} : ${content.slice(0, 80)}${content.length > 80 ? "…" : ""}`,
-        `/me/messages?ride=${rideId}&with=${userId}`,
-      ]
-    );
+    // On ne crée pas de notification "messages" : les notifications sont réservées aux actions de réservation.
 
     // Temps réel: envoyer aux deux utilisateurs (destinataire + expéditeur)
     try {
