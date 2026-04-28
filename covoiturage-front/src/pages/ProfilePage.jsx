@@ -19,20 +19,20 @@ function Avatar({ name, photoUrl, size = "lg" }) {
   ];
 
   const colorIndex = name ? name.charCodeAt(0) % colors.length : 0;
-  const sizeClass = size === "lg" ? "w-20 h-20 text-2xl" : "w-10 h-10 text-sm";
+  const sizeClass = size === "lg" ? "w-28 h-28 text-4xl" : "w-10 h-10 text-sm";
 
   if (photoUrl) {
     return (
       <img
         src={photoUrl}
         alt={name}
-        className={`${sizeClass} rounded-full object-cover shadow-lg border-2 border-indigo-500/30 shrink-0`}
+        className={`${sizeClass} rounded-full object-cover shadow-2xl border-4 border-indigo-500/30 shrink-0`}
       />
     );
   }
 
   return (
-    <div className={`${sizeClass} rounded-full bg-gradient-to-br ${colors[colorIndex]} flex items-center justify-center font-bold text-white shadow-lg shrink-0`}>
+    <div className={`${sizeClass} rounded-full bg-gradient-to-br ${colors[colorIndex]} flex items-center justify-center font-black text-white shadow-2xl shrink-0 border-4 border-white/10`}>
       {initials}
     </div>
   );
@@ -121,7 +121,7 @@ export default function ProfilePage() {
         phone: profile.phone,
         photo_url: url,
       });
-      setSuccess("Photo mise à jour !");
+      setSuccess("Photo de profil mise à jour !");
     } catch (err) {
       setError(err.message || "Erreur lors de l'upload.");
     } finally {
@@ -139,7 +139,7 @@ export default function ProfilePage() {
       setProfile(data.user);
       const token = localStorage.getItem("token");
       if (token) login(token);
-      setSuccess("Profil mis à jour !");
+      setSuccess("Profil mis à jour avec succès !");
       setEditing(false);
     } catch (err) {
       setError(err.response?.data?.message || "Erreur lors de la mise à jour.");
@@ -153,173 +153,164 @@ export default function ProfilePage() {
     ? new Date(profile.created_at).toLocaleDateString("fr-MG", { year: "numeric", month: "long" })
     : null;
 
-  return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <div className="max-w-3xl mx-auto px-4 py-8">
+  const inputClass = "w-full bg-gray-900 border border-gray-700/50 rounded-xl px-4 py-3.5 text-white text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all";
 
-        <h1 className="text-xl font-bold text-white mb-6">Mon profil</h1>
+  return (
+    <div className="min-h-screen bg-[#0a0f1c] text-white pt-24 pb-12 relative overflow-hidden selection:bg-indigo-500/30">
+      {/* Background glow */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none mix-blend-screen" />
+      <div className="absolute bottom-[20%] right-[-10%] w-[30%] h-[30%] rounded-full bg-cyan-600/10 blur-[100px] pointer-events-none mix-blend-screen" />
+
+      <div className="max-w-4xl mx-auto px-4 relative z-10">
+        <h1 className="text-3xl font-black text-white mb-8 tracking-tight">Mon <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Espace</span></h1>
 
         {loading && (
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 animate-pulse h-40" />
+          <div className="bg-gray-900/50 border border-white/5 rounded-3xl p-8 animate-pulse h-64" />
         )}
 
         {!loading && profile && (
-          <div className="space-y-4">
-
-            {/* Carte profil */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-
-              {/* Header mobile — avatar centré */}
-              <div className="flex flex-col items-center text-center mb-5">
-
-                {/* Avatar + upload */}
-                <div className="relative mb-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            {/* Left Column: Avatar & Basic Info */}
+            <div className="md:col-span-1 space-y-6">
+              <div className="bg-gray-900/60 backdrop-blur-xl border border-white/5 rounded-3xl p-8 text-center shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-indigo-500/20 to-cyan-500/10 opacity-50"></div>
+                
+                <div className="relative mx-auto w-fit mb-4 mt-6">
                   <Avatar name={profile.name} photoUrl={photoUrl} size="lg" />
-                  {/* Bouton upload — toujours visible sur mobile */}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    className="absolute -bottom-1 -right-1 w-8 h-8 bg-indigo-600 hover:bg-indigo-500 rounded-full flex items-center justify-center shadow-lg transition-colors border-2 border-gray-900"
+                    className="absolute bottom-0 right-0 w-10 h-10 bg-indigo-600 hover:bg-indigo-500 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110 border-4 border-[#0d1326]"
+                    title="Changer de photo"
                   >
                     {uploading ? (
-                      <svg className="w-4 h-4 text-white animate-spin" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                      </svg>
+                      <svg className="w-5 h-5 text-white animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
                     ) : (
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4 text-white">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                        <circle cx="12" cy="13" r="4"/>
-                      </svg>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5 text-white"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                     )}
                   </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="hidden"
-                  />
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
                 </div>
 
-                {/* Nom + badges */}
-                <h2 className="text-white font-bold text-lg">{profile.name}</h2>
-                <div className="flex flex-wrap justify-center gap-2 mt-1.5">
+                <h2 className="text-white font-bold text-2xl tracking-tight relative z-10">{profile.name}</h2>
+                <div className="flex flex-wrap justify-center gap-2 mt-3 relative z-10">
                   {isDriver && (
-                    <span className="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-xs font-semibold px-2.5 py-1 rounded-full">
-                      🚗 Conducteur
+                    <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold px-3 py-1.5 rounded-full">
+                      Conducteur
                     </span>
                   )}
                   {profile.role === "ADMIN" && (
-                    <span className="bg-purple-500/20 text-purple-400 border border-purple-500/30 text-xs font-semibold px-2.5 py-1 rounded-full">
-                      ⚡ Admin
+                    <span className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold px-3 py-1.5 rounded-full shadow-[0_0_15px_rgba(168,85,247,0.4)]">
+                      Admin
                     </span>
                   )}
                 </div>
 
-                {/* Infos */}
-                <div className="mt-3 space-y-1">
-                  <p className="text-gray-400 text-sm">{profile.email}</p>
+                <div className="mt-6 space-y-2 relative z-10 text-left bg-gray-800/40 rounded-2xl p-4 border border-white/5">
+                  <p className="text-gray-300 text-sm flex items-center gap-2">
+                    <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    <span className="truncate">{profile.email}</span>
+                  </p>
                   {profile.phone && (
-                    <p className="text-gray-400 text-sm">📞 {profile.phone}</p>
+                    <p className="text-gray-300 text-sm flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                      {profile.phone}
+                    </p>
                   )}
                   {memberSince && (
-                    <p className="text-gray-600 text-xs">Membre depuis {memberSince}</p>
+                    <p className="text-gray-500 text-xs mt-4 pt-4 border-t border-gray-700/50">Inscrit(e) en {memberSince}</p>
                   )}
                 </div>
               </div>
 
-              {/* Bouton modifier */}
-              <button
-                type="button"
-                onClick={() => { setEditing(!editing); setSuccess(""); }}
-                className="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white text-sm font-medium py-2.5 rounded-xl transition-all"
-              >
-                {editing ? "Annuler" : "✏️ Modifier mon profil"}
-              </button>
-
-              {/* Messages */}
-              {error && (
-                <div className="mt-3 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
-                  {error}
-                </div>
-              )}
-              {success && !editing && (
-                <div className="mt-3 bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3">
-                  ✅ {success}
-                </div>
-              )}
-
-              {/* Formulaire modification */}
-              {editing && (
-                <form onSubmit={handleSave} className="mt-4 pt-4 border-t border-gray-800 space-y-4">
-                  <div>
-                    <label className="text-gray-400 text-xs font-medium uppercase tracking-wider block mb-1.5">
-                      Nom complet
-                    </label>
-                    <input
-                      type="text"
-                      value={form.name}
-                      onChange={e => setForm({ ...form, name: e.target.value })}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors"
-                    />
+              {isDriver && (
+                <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/20 rounded-3xl p-6 shadow-lg shadow-indigo-500/10">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-indigo-500/20 rounded-2xl flex items-center justify-center text-2xl shadow-[0_0_20px_rgba(99,102,241,0.3)]">
+                      🏅
+                    </div>
+                    <div>
+                      <h3 className="text-indigo-100 font-bold text-sm">Conducteur GasyTrip</h3>
+                      <p className="text-indigo-300/70 text-xs mt-1 leading-relaxed">
+                        {stats.ridesCount} trajets proposés
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-gray-400 text-xs font-medium uppercase tracking-wider block mb-1.5">
-                      Téléphone
-                    </label>
-                    <input
-                      type="tel"
-                      value={form.phone}
-                      onChange={e => setForm({ ...form, phone: e.target.value })}
-                      placeholder="+261 34 00 000 00"
-                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors text-sm"
-                  >
-                    {saving ? "Enregistrement..." : "Enregistrer les modifications"}
-                  </button>
-                </form>
+                </div>
               )}
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: "Trajets",     value: stats.ridesCount,      color: "text-indigo-400", icon: "🚗" },
-                { label: "Passagers",   value: stats.passengersCount, color: "text-emerald-400", icon: "👥" },
-                { label: "Réservations", value: stats.bookingsCount,  color: "text-amber-400",  icon: "🎫" },
-              ].map(s => (
-                <div key={s.label} className="bg-gray-900 border border-gray-800 rounded-2xl p-4 text-center">
-                  <p className="text-xl mb-1">{s.icon}</p>
-                  <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-                  <p className="text-gray-500 text-xs uppercase tracking-wider mt-1 leading-tight">{s.label}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Badge conducteur */}
-            {isDriver && (
-              <div className="bg-gray-900 border border-indigo-500/20 rounded-2xl p-5">
-                <div className="flex items-start gap-4">
-                  <div className="w-11 h-11 bg-indigo-500/20 border border-indigo-500/30 rounded-xl flex items-center justify-center text-xl shrink-0">
-                    🏅
+            {/* Right Column: Edit Form & Stats */}
+            <div className="md:col-span-2 space-y-6">
+              
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {[
+                  { label: "Trajets publiés", value: stats.ridesCount, color: "text-indigo-400", bg: "bg-indigo-500/10", border: "border-indigo-500/20" },
+                  { label: "Passagers transportés", value: stats.passengersCount, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+                  { label: "Trajets réservés", value: stats.bookingsCount, color: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/20" },
+                ].map(s => (
+                  <div key={s.label} className="bg-gray-900/60 backdrop-blur-xl border border-white/5 rounded-3xl p-6 relative overflow-hidden group hover:border-white/10 transition-colors">
+                    <div className={`absolute top-0 right-0 w-24 h-24 ${s.bg} rounded-bl-full opacity-50`}></div>
+                    <p className={`text-4xl font-black ${s.color} mb-2 relative z-10`}>{s.value}</p>
+                    <p className="text-gray-400 text-xs font-bold uppercase tracking-wider relative z-10 leading-tight">{s.label}</p>
                   </div>
-                  <div>
-                    <h3 className="text-white font-semibold text-sm mb-1">Badge Conducteur GasyTrip</h3>
-                    <p className="text-gray-400 text-xs leading-relaxed">
-                      Tu as publié {stats.ridesCount} trajet{stats.ridesCount > 1 ? "s" : ""} et transporté {stats.passengersCount} passager{stats.passengersCount > 1 ? "s" : ""} sur la plateforme.
-                    </p>
-                  </div>
-                </div>
+                ))}
               </div>
-            )}
 
+              {/* Edit Profile Form */}
+              <div className="bg-gray-900/60 backdrop-blur-xl border border-white/5 rounded-3xl p-8 shadow-2xl">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-2xl font-bold text-white">Informations Personnelles</h2>
+                  <button
+                    type="button"
+                    onClick={() => { setEditing(!editing); setSuccess(""); }}
+                    className={`text-sm font-bold px-4 py-2 rounded-xl transition-colors ${
+                      editing ? "bg-gray-800 text-gray-300 hover:bg-gray-700" : "bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20"
+                    }`}
+                  >
+                    {editing ? "Annuler" : "Modifier"}
+                  </button>
+                </div>
+
+                {error && <div className="mb-6 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-2xl px-6 py-4">{error}</div>}
+                {success && !editing && <div className="mb-6 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm rounded-2xl px-6 py-4 font-medium">{success}</div>}
+
+                {editing ? (
+                  <form onSubmit={handleSave} className="space-y-6">
+                    <div>
+                      <label className="text-gray-400 text-xs font-bold uppercase tracking-wider block mb-2">Nom complet</label>
+                      <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="text-gray-400 text-xs font-bold uppercase tracking-wider block mb-2">Téléphone</label>
+                      <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+261 34 00 000 00" className={inputClass} />
+                    </div>
+                    <div className="pt-4">
+                      <button type="submit" disabled={saving} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-4 rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-indigo-500/25">
+                        {saving ? "Enregistrement en cours..." : "Sauvegarder les modifications"}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div className="bg-gray-800/30 rounded-2xl p-4 border border-white/5">
+                        <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Nom complet</p>
+                        <p className="text-white font-medium text-lg">{profile.name}</p>
+                      </div>
+                      <div className="bg-gray-800/30 rounded-2xl p-4 border border-white/5">
+                        <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Téléphone</p>
+                        <p className="text-white font-medium text-lg">{profile.phone || <span className="text-gray-600 italic">Non renseigné</span>}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
           </div>
         )}
       </div>
