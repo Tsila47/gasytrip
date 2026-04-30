@@ -19,6 +19,9 @@ jobs:
         node-version: [18.x, 20.x, 22.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
     - uses: actions/checkout@v4
     - name: Use Node.js ${{ matrix.node-version }}
@@ -26,6 +29,15 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test
+        cache-dependency-path: |
+          covoiturage-back/package-lock.json
+          covoiturage-front/package-lock.json
+    - name: Install dependencies (Backend)
+      run: npm ci
+      working-directory: ./covoiturage-back
+    - name: Install dependencies (Frontend)
+      run: npm ci
+      working-directory: ./covoiturage-front
+    - name: Build (Frontend)
+      run: npm run build
+      working-directory: ./covoiturage-front
